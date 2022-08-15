@@ -178,22 +178,70 @@ void loadData(string filename)
         }
     }
 
-    while (getline(sceneFile, input))
-	{
-	    cout << "input:" << input << "\n";
-		istringstream iss(input);
-		iss >> up.x >> up.y >> up.z;
-		break;
-	}
+    //get point light sources
+    int numPointLightSources;
+    getline(sceneFile, input)
+    cout << "input:" << input << "\n";
+    istringstream iss(input);
+    iss >> numPointLightSources;
 
-    //get line 4: fovY aspectRatio near far
-    while (getline(sceneFile, input))
-	{
-	    cout << "input:" << input << "\n";
-		istringstream iss(input);
-		iss >> fovYValue >> aspectRatioValue >> nearValue >> farValue;
-		break;
-	}
+    for(int k=0; k<numPointLightSources; k++)
+    {
+        //get position of the light source
+        getline(sceneFile, input);
+        istringstream iss(input);
+        Vector3D position;
+        iss >> position.x >> position.y >> position.z;
+
+        //get color of the light source
+        getline(sceneFile, input);
+        istringstream iss(input);
+        double r, g, b;
+        iss >> r >> g >> b;
+
+        PointLight pl(position, r, g, b);
+
+        pointLights.push_back(pl);
+    }
+
+    //get spot light sources
+    int numSpotLightSources;
+    getline(sceneFile, input)
+    cout << "input:" << input << "\n";
+    istringstream iss(input);
+    iss >> numSpotLightSources;
+
+    for(int k=0; k<numSpotLightSources; k++)
+    {
+        //get position of the spot light source
+        getline(sceneFile, input);
+        istringstream iss(input);
+        Vector3D position;
+        iss >> position.x >> position.y >> position.z;
+
+        //get color of the spot light source
+        getline(sceneFile, input);
+        istringstream iss(input);
+        double r, g, b;
+        iss >> r >> g >> b;
+
+        //get direction of the spot light source
+        getline(sceneFile, input);
+        istringstream iss(input);
+        Vector3D direction;
+        iss >> direction.x >> direction.y >> direction.z;
+
+        //get cutoff angle of the spot light source
+        getline(sceneFile, input);
+        istringstream iss(input);
+        Vector3D cutoff_angle;
+        iss >> cutoff_angle;
+
+        PointLight pl(position, r, g, b);
+        SpotLight sl(pl, direction, cutoff_angle);
+
+        spotLights.push_back(sl);
+    }
 }
 
 #endif // HEADER_H_INCLUDED

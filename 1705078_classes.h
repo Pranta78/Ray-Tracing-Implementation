@@ -228,17 +228,32 @@ public:
 
 class PointLight
 {
-public:
     Vector3D light_pos;
     double color[3];
+
+public:
+    PointLight(Vector3D light_pos, double r, double g, double b)
+    {
+        this->light_pos = light_pos;
+        this->r = r;
+        this->g = g;
+        this->b = b;
+    }
 };
 
 class SpotLight
 {
-public:
     PointLight point_light;
     Vector3D light_direction;
     double cutoff_angle;
+
+public:
+    SpotLight(PointLight point_light, Vector3D direction, double cutoff_angle)
+    {
+        this->point_light = point_light;
+        this->direction = direction;
+        this->cutoff_angle = cutoff_angle;
+    }
 };
 
 #endif // CLASSES_H_INCLUDED
