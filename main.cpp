@@ -14,8 +14,13 @@
 using namespace std;
 
 #include "1705078_header.h"
+#include "bitmap_image.hpp"
 
 #define root_2 sqrt(2.0)
+
+#define windowHeight 500
+#define windowWidth 500
+#define viewAngle 80
 
 double cameraHeight;
 double cameraAngle;
@@ -29,14 +34,15 @@ struct point
 };
 
 // struct point cameraPosition = {100, 100, 0};
-struct point cameraPosition = {128.482, 96.9838, 52.5};
+Vector3D cameraPosition = {128.482, 96.9838, 52.5};
 //struct point cameraPosition = {-37.3664, 107.725, 52.5};
 //struct point cameraPosition = {151.476, 85.2762, 52.5}
-struct point u = {0, 0, 1};
-struct point r = {-1.0/root_2, 1.0/root_2, 0};
-struct point l = {-1.0/root_2, -1.0/root_2, 0};
+//struct point cameraPosition = {-9.43898, -89.0654, 52.5}
+Vector3D u = {0, 0, 1};
+Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
+Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
 
-struct point lookDirection = {cameraPosition.x + l.x, cameraPosition.y + l.y, cameraPosition.z + l.z};
+Vector3D lookDirection = {cameraPosition.x + l.x, cameraPosition.y + l.y, cameraPosition.z + l.z};
 
 double forwardMovementIncrement = 2.5;
 double rightMovementIncrement = 1.5;
@@ -52,13 +58,37 @@ extern vector <Object*> objects;
 extern vector <PointLight> pointLights;
 extern vector <SpotLight> spotLights;
 
+extern int recursion_level;
+extern int pixelNumbers;
+
 double getModulus(struct point Point)
 {
     return sqrt(Point.x*Point.x + Point.y*Point.y + Point.z*Point.z);
 }
 
+double getModulus(Vector3D Point)
+{
+    return sqrt(Point.x*Point.x + Point.y*Point.y + Point.z*Point.z);
+}
+
+void capture()
+{
+    bitmap_image image;
+    image.setwidth_height(pixelNumbers, pixelNumbers, true);
+
+    double planeDistance = (windowHeight / 2.0) / tan(viewAngle * 180.0 / (2.0 * pi));
+
+    //double topleft =
+}
+
 void keyboardListener(unsigned char key, int x,int y){
 	switch(key){
+
+        case '0':
+            {
+                capture();
+                break;
+            }
 
         //look left
         //rotate r and l with respect to u
@@ -411,7 +441,7 @@ void init(){
 	glLoadIdentity();
 
 	//give PERSPECTIVE parameters
-	gluPerspective(80,	1,	1,	1000.0);
+	gluPerspective(viewAngle,	1,	1,	1000.0);
 	//field of view in the Y (vertically)
 	//aspect ratio that determines the field of view in the X direction (horizontally)
 	//near distance
@@ -420,7 +450,7 @@ void init(){
 
 int main(int argc, char **argv){
 	glutInit(&argc,argv);
-	glutInitWindowSize(500, 500);
+	glutInitWindowSize(windowWidth, windowHeight);
 	glutInitWindowPosition(0, 0);
 	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
 

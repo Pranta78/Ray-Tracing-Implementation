@@ -16,6 +16,30 @@ public:
         this->y = y;
         this->z = z;
     }
+
+    //Vector addition
+	Vector3D operator+(const Vector3D& a) const
+    {
+        return Vector3D(a.x+x, a.y+y, a.z+z);
+    }
+
+    //Vector subtraction
+    Vector3D operator-(const Vector3D& a) const
+    {
+        return Vector3D(x-a.x, y-a.y, z-a.z);
+    }
+
+    //Scalar division
+    Vector3D operator/(double a) const
+    {
+        return Vector3D(x/a, y/a, z/a);
+    }
+
+    //Cross product
+    Vector3D operator*(const Vector3D& a) const
+    {
+        return Vector3D(a.z*y - a.y*z, a.x*z - a.z*x, a.y*x - a.x*y);
+    }
 };
 
 class Object
@@ -264,6 +288,25 @@ public:
         this->point_light = point_light;
         this->light_direction = direction;
         this->cutoff_angle = cutoff_angle;
+    }
+};
+
+class Ray
+{
+    Vector3D start;
+    Vector3D dir;
+
+public:
+    Ray(Vector3D start, Vector3D dir)
+    {
+        this->start = start;
+
+        //normalize
+        double dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
+
+        this->dir.x = dir.x / dist;
+        this->dir.y = dir.y / dist;
+        this->dir.z = dir.z / dist;
     }
 };
 
