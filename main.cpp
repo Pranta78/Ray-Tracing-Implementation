@@ -7,7 +7,7 @@
 
 #include "1705078_header.h"
 
-#define pi (2*acos(0.0))
+
 #define root_2 sqrt(2.0)
 
 double cameraHeight;
