@@ -29,29 +29,86 @@ public:
         return Vector3D(x-a.x, y-a.y, z-a.z);
     }
 
+    //Scalar multiplication
+    Vector3D operator*(double a) const
+    {
+        return Vector3D(x*a, y*a, z*a);
+    }
+
     //Scalar division
     Vector3D operator/(double a) const
     {
         return Vector3D(x/a, y/a, z/a);
     }
 
+    //dot product
+    double operator%(const Vector3D& a) const
+    {
+        return (x*a.x + y*a.y + z*a.z);
+    }
+
     //Cross product
-    Vector3D operator*(const Vector3D& a) const
+    Vector3D operator^(const Vector3D& a) const
     {
         return Vector3D(a.z*y - a.y*z, a.x*z - a.z*x, a.y*x - a.x*y);
+    }
+
+    friend Vector3D operator*(double a, const Vector3D& v)
+    {
+        return Vector3D(a*v.x, a*v.y, a*v.z);
+    }
+};
+
+class Ray
+{
+public:
+    Vector3D start;
+    Vector3D dir;
+
+    Ray(Vector3D start, Vector3D dir)
+    {
+        this->start = start;
+
+        //normalize
+        double dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
+
+        this->dir.x = dir.x / dist;
+        this->dir.y = dir.y / dist;
+        this->dir.z = dir.z / dist;
+    }
+};
+
+class Matrix3x3
+{
+public:
+    double matrix[3][3];
+
+    Matrix3x3()     {}
+
+    void copyMatrix(double matrix[3][3])
+    {
+        for(int i=0; i<3; i++)
+            for(int j=0; j<3; j++)
+                this->matrix[i][j] = matrix[i][j];
+    }
+
+    double determinant()
+    {
+        return matrix[0][0]*(matrix[1][1]*matrix[2][2] - matrix[2][1]*matrix[1][2])
+             - matrix[0][1]*(matrix[1][0]*matrix[2][2] - matrix[1][2]*matrix[2][0])
+             + matrix[0][2]*(matrix[1][0]*matrix[2][1] - matrix[2][0]*matrix[1][1]);
     }
 };
 
 class Object
 {
-protected:
+public:
     Vector3D reference_point;
     double height, width, length;
     double color[3];
     double coefficients[4]; //ambient, diffuse, specular, reflection coefficient
     int shine;  //exponent term of specular component
 
-public:
     Object()    {}
 
     Object(Vector3D reference_point)
@@ -68,6 +125,10 @@ public:
     }
 
     virtual void draw() {}
+    virtual double intersect(Ray *r, double *color, int level)
+    {
+        return -1.0;
+    }
 
     void setColor(double red, double green, double blue)
     {
@@ -87,6 +148,11 @@ public:
         coefficients[1] = diffuse;
         coefficients[2] = specular;
         coefficients[3] = reflection_coefficient;
+    }
+
+    void print()
+    {
+        cout << "Object Color: r = " << color[0] << ", g = " << color[1] << ", b = " << color[2] << "\n";
     }
 };
 
@@ -156,6 +222,42 @@ public:
             }
         }glPopMatrix();
     }
+
+    double intersect(Ray *r, double *color, int level)
+    {
+        //quadratic equation: a*t^2 + b*t + c = 0
+        //Ray equation: start + t * dir
+        //to accommodate for spheres not centered at origin, R0 is changed
+        //R0 = R0 - Center
+        Vector3D R0 = r->start - center;
+        Vector3D Rd = r->dir;
+        //a = 1, b = 2*Rd*R0, c = R0*R0 - r*r
+        double a = 1;
+        double b = 2 * Rd % R0;
+        double c = R0 % R0 - radius * radius;
+        double d_square = b*b - 4*a*c;
+
+        //if d^2 < 0, ray does not intersect the sphere
+        if(d_square >= 0.0)
+        {
+            double d = sqrt(d_square);
+
+            double t1 = (-b + d) / (2.0 * a);
+            double t2 = (-b - d) / (2.0 * a);
+
+            //take closest positive
+            if(t1 >= 0 && t2 >= 0)
+                return min(t1, t2);
+
+            if(t2 < 0.0)
+                return t1;
+
+            if(t1 < 0.0)
+                return t2;
+        }
+
+        return -1.0;
+    }
 };
 
 class Triangle : public Object
@@ -182,6 +284,68 @@ public:
         }
         glEnd();
     }
+
+    double intersect(Ray *r, double *color, int level)
+    {
+        double ax = point1.x;
+        double ay = point1.y;
+        double az = point1.z;
+
+        double bx = point2.x;
+        double by = point2.y;
+        double bz = point2.z;
+
+        double cx = point3.x;
+        double cy = point3.y;
+        double cz = point3.z;
+
+        Vector3D R0 = r->start;
+        Vector3D Rd = r->dir;
+
+        double R0x = R0.x;
+        double R0y = R0.y;
+        double R0z = R0.z;
+
+        double Rdx = Rd.x;
+        double Rdy = Rd.y;
+        double Rdz = Rd.z;
+
+        Matrix3x3 A;
+        double matrix1[3][3] = {{ax-bx, ax-cx, Rdx},
+                                {ay-by, ay-cy, Rdy},
+                                {az-bz, az-cz, Rdz}};
+        A.copyMatrix(matrix1);
+        double detA = A.determinant();
+
+        Matrix3x3 t_coefficient;
+        double matrix2[3][3] = {{ax-bx, ax-cx, ax-R0x},
+                                {ay-by, ay-cy, ay-R0y},
+                                {az-bz, az-cz, az-R0z}};
+        t_coefficient.copyMatrix(matrix2);
+        double detT = t_coefficient.determinant() / detA;
+
+        Matrix3x3 beta_coefficient;
+        double matrix3[3][3] = {{ax-R0x, ax-cx, Rdx},
+                                {ay-R0y, ay-cy, Rdy},
+                                {az-R0z, az-cz, Rdz}};
+        beta_coefficient.copyMatrix(matrix3);
+        double beta = beta_coefficient.determinant() / detA;
+
+        Matrix3x3 gamma_coefficient;
+        double matrix4[3][3] = {{ax-bx, ax-R0x, Rdx},
+                                {ay-by, ay-R0y, Rdy},
+                                {az-bz, az-R0z, Rdz}};
+        gamma_coefficient.copyMatrix(matrix4);
+        double gamma = gamma_coefficient.determinant() / detA;
+
+        //beta+gamma < 1 and beta>0 and gamma>0 and t>0
+        if( ! (beta+gamma < 1.0 && beta > 0 && gamma > 0 && detT > 0))
+        {
+            return -1.0;
+        }
+
+        return detT;
+    }
 };
 
 class GeneralQuadric : public Object
@@ -204,6 +368,52 @@ public:
     }
 
     void draw()     {}
+
+    double intersect(Ray *r, double *color, int level)
+    {
+        //equation: a*x^2 + b*y^2 + c*z^2 + d*x*y + e*y*z + f*x*z + g*x + h*y + i*z + j = 0
+        Vector3D R0 = r->start;
+        Vector3D Rd = r->dir;
+
+        double rx = R0.x;
+        double ry = R0.y;
+        double rz = R0.z;
+        double dx = Rd.x;
+        double dy = Rd.y;
+        double dz = Rd.z;
+
+        //coefficient of t^2
+        double aa = a*dx*dx + b*dy*dy + c*dz*dz + d*dx*dy + e*dy*dz + f*dz*dx;
+
+        //coefficient of t
+        double bb = 2*a*dx*rx + 2*b*dy*ry + 2*c*dz*rz + d*rx*dy + d*dx*ry + e*dy*rz + e*ry*dz + f*dx*rz + f*dz*rx + g*dx + h*dy + i*dz;
+
+        //constant
+        double cc = a*rx*rx + b*ry*ry + c*rz*rz + d*rx*ry + e*ry*rz + f*rx*rz + g*rx + h*ry + i*rz + j;
+
+        double dd_square = bb * bb - 4 * aa * cc;
+
+        //if dd^2 < 0, ray does not intersect the surface
+        if(dd_square >= 0.0)
+        {
+            double dd = sqrt(dd_square);
+
+            double t1 = (-bb + dd) / (2.0 * aa);
+            double t2 = (-bb - dd) / (2.0 * aa);
+
+            //take closest positive
+            if(t1 >= 0 && t2 >= 0)
+                return min(t1, t2);
+
+            if(t2 < 0.0)
+                return t1;
+
+            if(t1 < 0.0)
+                return t2;
+        }
+
+        return -1.0;
+    }
 };
 
 class Floor : public Object
@@ -257,6 +467,19 @@ public:
             }
         }
     }
+
+    double intersect(Ray *r, double *color, int level)
+    {
+        //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
+        //D = (0, 0, 1) dot (0, 0, 0) = 0
+        //t = -(D + normal dot R0) / normal dot Rd
+        if(r->dir.z == 0.0)
+            return -1.0;
+
+        double t = -(r->start.z) / (r->dir.z);
+
+        return t;
+    }
 };
 
 class PointLight
@@ -291,23 +514,6 @@ public:
     }
 };
 
-class Ray
-{
-    Vector3D start;
-    Vector3D dir;
 
-public:
-    Ray(Vector3D start, Vector3D dir)
-    {
-        this->start = start;
-
-        //normalize
-        double dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
-
-        this->dir.x = dir.x / dist;
-        this->dir.y = dir.y / dist;
-        this->dir.z = dir.z / dist;
-    }
-};
 
 #endif // CLASSES_H_INCLUDED

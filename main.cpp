@@ -35,12 +35,17 @@ struct point
 
 // struct point cameraPosition = {100, 100, 0};
 Vector3D cameraPosition = {128.482, 96.9838, 52.5};
+//struct point cameraPosition = {63.4918, -92.1987, 39};
 //struct point cameraPosition = {-37.3664, 107.725, 52.5};
 //struct point cameraPosition = {151.476, 85.2762, 52.5}
 //struct point cameraPosition = {-9.43898, -89.0654, 52.5}
 Vector3D u = {0, 0, 1};
 Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
 Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
+
+//Vector3D u = {0, 1, 0};
+//Vector3D r = {1, 0, 0};
+//Vector3D l = {0, 0, -1};
 
 Vector3D lookDirection = {cameraPosition.x + l.x, cameraPosition.y + l.y, cameraPosition.z + l.z};
 
@@ -61,6 +66,11 @@ extern vector <SpotLight> spotLights;
 extern int recursion_level;
 extern int pixelNumbers;
 
+int imageWidth;
+int imageHeight;
+
+int counter = 11;
+
 double getModulus(struct point Point)
 {
     return sqrt(Point.x*Point.x + Point.y*Point.y + Point.z*Point.z);
@@ -76,9 +86,87 @@ void capture()
     bitmap_image image;
     image.setwidth_height(pixelNumbers, pixelNumbers, true);
 
-    double planeDistance = (windowHeight / 2.0) / tan(viewAngle * 180.0 / (2.0 * pi));
+    double planeDistance = (windowHeight / 2.0) / tan(viewAngle * pi / (2.0 * 180));
 
-    //double topleft =
+    cout << "here 0!\n";
+
+    Vector3D ll(cameraPosition.x + l.x, cameraPosition.y + l.y, cameraPosition.z + l.z);
+    Vector3D uu(u.x, u.y, u.z);
+    Vector3D rr = ll ^ uu;
+
+    Vector3D topleft = cameraPosition + l * planeDistance - r * windowWidth / 2.0 + u * windowHeight / 2.0;
+    //Vector3D topleft = cameraPosition + lookDirection * planeDistance - rr * windowWidth / 2.0 + uu * windowHeight / 2.0;
+
+    cout << "here -1!\n";
+
+    imageWidth = pixelNumbers;
+    imageHeight = pixelNumbers;
+
+    double du = windowWidth / imageWidth;
+    double dv = windowHeight / imageHeight;
+
+    cout << "here asadsd!\n";
+
+    //Choose middle of the grid cell
+    topleft = topleft + r * (0.5 * du) - u * (0.5 * dv);
+    //topleft = topleft + rr * (0.5 * du) - uu * (0.5 * dv);
+
+    cout << "here 1!\n";
+
+    for(int i=0; i<imageWidth; i++)
+    {
+        for(int j=0; j<imageHeight; j++)
+        {
+            topleft = topleft + r * (0.5 * du) * i - u * (0.5 * dv) * j;
+            //topleft = topleft + rr * (0.5 * du) * i - uu * (0.5 * dv) * j;
+
+            //cout << "here 1.5!\n";
+
+            Ray *ray = new Ray(cameraPosition, topleft - cameraPosition);
+            double *dummyColor = new double[3];
+
+            Object *nearest = NULL;
+            double t;
+            double tMin = 1e50;
+
+            //cout << "here 2!\n";
+
+            for(auto object : objects)
+            {
+                double t = object->intersect(ray, dummyColor, 0);
+                //cout << "here 2.1!\n";
+
+//                if(t != -1)
+//                    cout << "bingo! t = " << t << ", tMin = " << tMin << "\n";
+
+                //save nearest object
+                //if(t >= 0)
+                    if(tMin > t)
+                    {
+                        nearest = object;
+                        tMin = min(tMin, t);
+                        //cout << "Updated!\n";
+                    }
+            }
+
+            if(nearest != NULL)
+            {
+                tMin = nearest -> intersect(ray, dummyColor, 1);
+                cout << "Updating i = " << i << ", j = " << j << "\tr = " << nearest->color[0] << ", g = " << nearest->color[1] << ", b = " << nearest->color[2] << "\n";
+                image.set_pixel(j, i, nearest->color[0], nearest->color[1], nearest->color[2]);
+            }
+        }
+
+        cout << "here i = " << i << "!\n";
+    }
+
+    cout << "here 3!\n";
+
+    //string filename = "output" + to_string(counter) + ".bmp";
+    ostringstream ss;
+    ss << counter;
+    image.save_image(FOLDER+"output" + ss.str() + ".bmp");
+    counter++;
 }
 
 void keyboardListener(unsigned char key, int x,int y){
