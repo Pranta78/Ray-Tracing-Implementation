@@ -952,6 +952,30 @@ void init(){
 	//far distance
 }
 
+//int main(int argc, char **argv){
+//	glutInit(&argc,argv);
+//	glutInitWindowSize(500, 500);
+//	glutInitWindowPosition(0, 0);
+//	glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);	//Depth, Double buffer, RGB color
+//
+//	glutCreateWindow("My OpenGL Program");
+//
+//	init();
+//
+//	glEnable(GL_DEPTH_TEST);	//enable Depth Testing
+//
+//	glutDisplayFunc(display);	//display callback function
+//	glutIdleFunc(animate);		//what you want to do in the idle time (when no drawing is occuring)
+//
+//	glutKeyboardFunc(keyboardListener);
+//	glutSpecialFunc(specialKeyListener);
+//	glutMouseFunc(mouseListener);
+//
+//	glutMainLoop();		//The main loop of OpenGL
+//
+//	return 0;
+//}
+
 int main(int argc, char **argv){
 	glutInit(&argc,argv);
 	glutInitWindowSize(500, 500);

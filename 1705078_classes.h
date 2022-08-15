@@ -35,6 +35,14 @@ public:
         this->reference_point = reference_point;
     }
 
+    Object(Vector3D reference_point, double length, double width, double height)
+    {
+        this->reference_point = reference_point;
+        this->length = length;
+        this->width = width;
+        this->height = height;
+    }
+
     virtual void draw() {}
 
     void setColor(double red, double green, double blue)
@@ -143,6 +151,28 @@ public:
     }
 };
 
+class GeneralQuadric : public Object
+{
+    double a, b, c, d, e, f, g, h, i, j;
+
+public:
+    GeneralQuadric(Vector3D reference_point, double length, double width, double height, double a, double b, double c, double d, double e, double f, double g, double h, double i, double j) : Object(reference_point, length, width, height)
+    {
+        this->a = a;
+        this->b = b;
+        this->c = c;
+        this->d = d;
+        this->e = e;
+        this->f = f;
+        this->g = g;
+        this->h = h;
+        this->i = i;
+        this->j = j;
+    }
+
+    void draw()     {}
+};
+
 class Floor : public Object
 {
     double floorWidth, tileWidth;
@@ -194,6 +224,21 @@ public:
             }
         }
     }
+};
+
+class PointLight
+{
+public:
+    Vector3D light_pos;
+    double color[3];
+};
+
+class SpotLight
+{
+public:
+    PointLight point_light;
+    Vector3D light_direction;
+    double cutoff_angle;
 };
 
 #endif // CLASSES_H_INCLUDED
