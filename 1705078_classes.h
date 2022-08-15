@@ -82,10 +82,10 @@ public:
 
     void draw()
     {
-        drawSphere(radius);
+        drawSphere(radius, 100, 100);
     }
 
-    void drawSphere(double radius)
+    void drawSphere(double radius, int stacks, int slices)
     {
         //Vector3D points[stacks+1][slices+1];
         Vector3D points[101][101];
@@ -104,27 +104,33 @@ public:
             }
         }
 
-        glColor3f(color[0], color[1], color[2]);
-
-        //draw quads using generated points
-        for(i=0;i<stacks;i++)
+        glPushMatrix();
         {
-            for(j=0;j<slices;j++)
+            //translate to sphere's center
+            glTranslatef(center.x, center.y, center.z);
+
+            glColor3f(color[0], color[1], color[2]);
+
+            //draw quads using generated points
+            for(i=0;i<stacks;i++)
             {
-                glBegin(GL_QUADS);{
-                    //upper hemisphere
-                    glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
-                    glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
-                    glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
-                    glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
-                    //lower hemisphere
-                    glVertex3f(points[i][j].x,points[i][j].y,-points[i][j].z);
-                    glVertex3f(points[i][j+1].x,points[i][j+1].y,-points[i][j+1].z);
-                    glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,-points[i+1][j+1].z);
-                    glVertex3f(points[i+1][j].x,points[i+1][j].y,-points[i+1][j].z);
-                }glEnd();
+                for(j=0;j<slices;j++)
+                {
+                    glBegin(GL_QUADS);{
+                        //upper hemisphere
+                        glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
+                        glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
+                        glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
+                        glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
+                        //lower hemisphere
+                        glVertex3f(points[i][j].x,points[i][j].y,-points[i][j].z);
+                        glVertex3f(points[i][j+1].x,points[i][j+1].y,-points[i][j+1].z);
+                        glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,-points[i+1][j+1].z);
+                        glVertex3f(points[i+1][j].x,points[i+1][j].y,-points[i+1][j].z);
+                    }glEnd();
+                }
             }
-        }
+        }glPopMatrix();
     }
 };
 

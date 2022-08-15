@@ -29,8 +29,9 @@ struct point
 };
 
 // struct point cameraPosition = {100, 100, 0};
-struct point cameraPosition = {55.6635, -84.0759, 52.5};
+struct point cameraPosition = {128.482, 96.9838, 52.5};
 //struct point cameraPosition = {-37.3664, 107.725, 52.5};
+//struct point cameraPosition = {151.476, 85.2762, 52.5}
 struct point u = {0, 0, 1};
 struct point r = {-1.0/root_2, 1.0/root_2, 0};
 struct point l = {-1.0/root_2, -1.0/root_2, 0};
@@ -38,7 +39,7 @@ struct point l = {-1.0/root_2, -1.0/root_2, 0};
 struct point lookDirection = {cameraPosition.x + l.x, cameraPosition.y + l.y, cameraPosition.z + l.z};
 
 double forwardMovementIncrement = 2.5;
-double rightMovementIncrement = 0.5;
+double rightMovementIncrement = 1.5;
 double upMovementIncrement = 1.5;
 
 double lookupAngle = 0.1;
