@@ -68,24 +68,27 @@ public:
 
 class Sphere : public Object
 {
+    Vector3D center;
     double radius;
 
 public:
     Sphere(Vector3D center, double radius)
     {
         reference_point = center;
+        this->center = reference_point;
         this->radius = radius;
         length = this->radius;
     }
 
     void draw()
     {
-        drawSphere(radius, 100, 100);
+        drawSphere(radius);
     }
 
-    void drawSphere(double radius,int slices,int stacks)
+    void drawSphere(double radius)
     {
-        Vector3D points[stacks+1][slices+1];
+        //Vector3D points[stacks+1][slices+1];
+        Vector3D points[101][101];
         int i,j;
         double h,r;
         //generate points
@@ -232,12 +235,14 @@ class PointLight
     double color[3];
 
 public:
+    PointLight()    {}
+
     PointLight(Vector3D light_pos, double r, double g, double b)
     {
         this->light_pos = light_pos;
-        this->r = r;
-        this->g = g;
-        this->b = b;
+        this->color[0] = r;
+        this->color[1] = g;
+        this->color[2] = b;
     }
 };
 
@@ -251,7 +256,7 @@ public:
     SpotLight(PointLight point_light, Vector3D direction, double cutoff_angle)
     {
         this->point_light = point_light;
-        this->direction = direction;
+        this->light_direction = direction;
         this->cutoff_angle = cutoff_angle;
     }
 };
