@@ -72,9 +72,7 @@ public:
         //normalize
         double dist = sqrt(dir.x*dir.x + dir.y*dir.y + dir.z*dir.z);
 
-        this->dir.x = dir.x / dist;
-        this->dir.y = dir.y / dist;
-        this->dir.z = dir.z / dist;
+        this->dir = dir / dist;
     }
 };
 
@@ -411,6 +409,62 @@ public:
             if(t1 < 0.0)
                 return t2;
         }
+
+        return -1.0;
+    }
+};
+
+class Tile : public Object
+{
+    double tileX, tileY;
+    double tileWidth;
+
+public:
+    Tile(double tileX, double tileY, double tileWidth)
+    {
+        //reference_point = Vector3D(-floorWidth/2.0, -floorWidth/2.0, 0);
+        length = tileWidth;
+
+        this->tileX = tileX;
+        this->tileY = tileY;
+        this->tileWidth = tileWidth;
+    }
+
+    void draw()
+    {
+        glColor3f(color[0], color[1], color[2]);
+
+        glBegin(GL_QUADS);
+        {
+            glVertex3f(tileX, tileY, 0);
+            glVertex3f(tileX-tileWidth, tileY, 0);
+            glVertex3f(tileX-tileWidth, tileY-tileWidth, 0);
+            glVertex3f(tileX, tileY-tileWidth, 0);
+        }
+        glEnd();
+    }
+
+    double intersect(Ray *r, double *color, int level)
+    {
+        //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
+        //D = (0, 0, 1) dot (0, 0, 0) = 0
+        //t = -(D + normal dot R0) / normal dot Rd
+        if(r->dir.z == 0.0)
+            return -1.0;
+
+        double t = -(r->start.z) / (r->dir.z);
+
+        //determine if the intersecting point is inside the tile/square
+        //intersecting point = R0 + t*Rd
+        Vector3D intersectPoint = r->start + r->dir * t;
+        double x = intersectPoint.x;
+        double y = intersectPoint.y;
+
+        double xMin = tileX - tileWidth;
+        double yMin = tileY - tileWidth;
+        //since tile is on XY plane, compare x, y coordinates with those of the tile
+        if((x >= xMin && x <= tileX) && (y >= yMin && y <= tileY))
+            return t;
 
         return -1.0;
     }
