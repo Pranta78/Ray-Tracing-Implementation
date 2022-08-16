@@ -18,8 +18,8 @@ using namespace std;
 
 #define root_2 sqrt(2.0)
 
-#define windowHeight 500
-#define windowWidth 500
+#define windowHeight 768
+#define windowWidth 768
 #define viewAngle 90
 
 double cameraHeight;

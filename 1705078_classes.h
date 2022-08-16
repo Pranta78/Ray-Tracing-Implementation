@@ -367,6 +367,31 @@ public:
 
     void draw()     {}
 
+    bool shouldBeDrawn(Ray *r, double t)
+    {
+        Vector3D intersectingPoint = r->start + r->dir * t;
+
+        if(length != 0.0)   //clip
+        {
+            if((intersectingPoint.x > reference_point.x + length) || (intersectingPoint.x < reference_point.x))
+                return false;
+        }
+
+        if(width != 0.0)   //clip
+        {
+            if((intersectingPoint.y > reference_point.y + width) || (intersectingPoint.y < reference_point.y))
+                return false;
+        }
+
+        if(height != 0.0)   //clip
+        {
+            if((intersectingPoint.z > reference_point.z + height) || (intersectingPoint.z < reference_point.z))
+                return false;
+        }
+
+        return true;
+    }
+
     double intersect(Ray *r, double *color, int level)
     {
         //equation: a*x^2 + b*y^2 + c*z^2 + d*x*y + e*y*z + f*x*z + g*x + h*y + i*z + j = 0
@@ -381,13 +406,13 @@ public:
         double dz = Rd.z;
 
         //coefficient of t^2
-        double aa = a*dx*dx + b*dy*dy + c*dz*dz + d*dx*dy + e*dy*dz + f*dz*dx;
+        double aa = a*dx*dx + b*dy*dy + c*dz*dz + d*dx*dy + e*dx*dz + f*dy*dz;
 
         //coefficient of t
-        double bb = 2.0*a*dx*rx + 2.0*b*dy*ry + 2.0*c*dz*rz + d*rx*dy + d*dx*ry + e*dy*rz + e*ry*dz + f*dx*rz + f*dz*rx + g*dx + h*dy + i*dz;
+        double bb = 2.0*a*dx*rx + 2.0*b*dy*ry + 2.0*c*dz*rz + d*rx*dy + d*dx*ry + e*dx*rz + e*dz*rx + f*dy*rz + f*ry*dz + g*dx + h*dy + i*dz;
 
         //constant
-        double cc = a*rx*rx + b*ry*ry + c*rz*rz + d*rx*ry + e*ry*rz + f*rx*rz + g*rx + h*ry + i*rz + j;
+        double cc = a*rx*rx + b*ry*ry + c*rz*rz + d*rx*ry + e*rx*rz + f*ry*rz + g*rx + h*ry + i*rz + j;
 
         double dd_square = bb * bb - 4.0 * aa * cc;
 
@@ -401,13 +426,37 @@ public:
 
             //take closest positive
             if(t1 >= 0 && t2 >= 0)
-                return min(t1, t2);
+            //check which one falls within the reference cube
+            {
+                double tMin = min(t1, t2);
+                double tMax = max(t1, t2);
+
+                if(shouldBeDrawn(r, tMin))
+                    return tMin;
+
+                if(shouldBeDrawn(r, tMax))
+                    return tMax;
+
+                return -1.0;
+            }
 
             if(t2 < 0.0)
-                return t1;
+            //check which one falls within the reference cube
+            {
+                if(shouldBeDrawn(r, t1))
+                    return t1;
+
+                return -1.0;
+            }
 
             if(t1 < 0.0)
-                return t2;
+            //check which one falls within the reference cube
+            {
+                if(shouldBeDrawn(r, t2))
+                    return t2;
+
+                return -1.0;
+            }
         }
 
         return -1.0;
