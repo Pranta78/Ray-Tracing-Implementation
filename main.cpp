@@ -33,16 +33,13 @@ struct point
 	double x,y,z;
 };
 
-bool draw_circle = false;
-Vector3D cur_pixel;
-void drawSphere(double radius,int slices,int stacks);
-
 //Vector3D cameraPosition = {100, 100, 0};
 Vector3D cameraPosition = {128.482, 96.9838, 52.5};
 //Vector3D cameraPosition = {63.4918, -92.1987, 39};
 //Vector3D cameraPosition = {-37.3664, 107.725, 52.5};
 //Vector3D cameraPosition = {151.476, 85.2762, 52.5};
 //Vector3D cameraPosition = {-9.43898, -89.0654, 52.5};
+//Vector3D cameraPosition = {8.73062, -72.1185, 45.0012};
 Vector3D u = {0, 0, 1};
 Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
 Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
@@ -111,8 +108,6 @@ void capture()
     double dv = windowHeight * 1.0 / imageHeight;
 
     cout << "here asadsd!\n";
-    draw_circle = true;
-    cur_pixel = topleft;
 
     //Choose middle of the grid cell
     topleft = topleft + r * (0.5 * du) - u * (0.5 * dv);
@@ -136,6 +131,7 @@ void capture()
 
             Ray *ray = new Ray(cameraPosition, curPixel - cameraPosition);
             double *dummyColor = new double[3];
+            double nearestColor[3];
 
             Object *nearest = NULL;
             double t;
@@ -156,6 +152,9 @@ void capture()
                     if(tMin > t)
                     {
                         nearest = object;
+                        nearestColor[0] = object->color[0];
+                        nearestColor[1] = object->color[1];
+                        nearestColor[2] = object->color[2];
                         tMin = min(tMin, t);
                         //cout << "Updated! t = " << t << ", tMin = " << tMin << "\n";
                         //image.set_pixel(j, i, 1, 0, 1);
@@ -165,8 +164,12 @@ void capture()
             if(nearest != NULL)
             {
                 tMin = nearest -> intersect(ray, dummyColor, 1);
+                nearestColor[0] = nearest->color[0];
+                nearestColor[1] = nearest->color[1];
+                nearestColor[2] = nearest->color[2];
                 //cout << "Updating i = " << i << ", j = " << j << "\tr = " << nearest->color[0] << ", g = " << nearest->color[1] << ", b = " << nearest->color[2] << "\n";
-                image.set_pixel(j, i, nearest->color[0]*255.0, nearest->color[1]*255.0, nearest->color[2]*255.0);
+                //image.set_pixel(j, i, nearest->color[0]*255.0, nearest->color[1]*255.0, nearest->color[2]*255.0);
+                image.set_pixel(j, i, nearestColor[0]*255.0, nearestColor[1]*255.0, nearestColor[2]*255.0);
             }
 
             //image.set_pixel(j, i, 1, 0, 1);
@@ -182,46 +185,6 @@ void capture()
     ss << counter;
     image.save_image(FOLDER+"output" + ss.str() + ".bmp");
     counter++;
-}
-
-void drawSphere(double radius,int slices,int stacks)
-{
-	// struct point points[100][100];
-	struct point points[stacks+1][slices+1];
-	int i,j;
-	double h,r;
-	//generate points
-	for(i=0;i<=stacks;i++)
-	{
-		h=radius*sin(((double)i/(double)stacks)*(pi/2));
-		r=radius*cos(((double)i/(double)stacks)*(pi/2));
-		for(j=0;j<=slices;j++)
-		{
-			points[i][j].x=r*cos(((double)j/(double)slices)*2*pi);
-			points[i][j].y=r*sin(((double)j/(double)slices)*2*pi);
-			points[i][j].z=h;
-		}
-	}
-	//draw quads using generated points
-	for(i=0;i<stacks;i++)
-	{
-        //glColor3f((double)i/(double)stacks,(double)i/(double)stacks,(double)i/(double)stacks);
-		for(j=0;j<slices;j++)
-		{
-			glBegin(GL_QUADS);{
-			    //upper hemisphere
-				glVertex3f(points[i][j].x,points[i][j].y,points[i][j].z);
-				glVertex3f(points[i][j+1].x,points[i][j+1].y,points[i][j+1].z);
-				glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,points[i+1][j+1].z);
-				glVertex3f(points[i+1][j].x,points[i+1][j].y,points[i+1][j].z);
-                //lower hemisphere
-                glVertex3f(points[i][j].x,points[i][j].y,-points[i][j].z);
-				glVertex3f(points[i][j+1].x,points[i][j+1].y,-points[i][j+1].z);
-				glVertex3f(points[i+1][j+1].x,points[i+1][j+1].y,-points[i+1][j+1].z);
-				glVertex3f(points[i+1][j].x,points[i+1][j].y,-points[i+1][j].z);
-			}glEnd();
-		}
-	}
 }
 
 void keyboardListener(unsigned char key, int x,int y){
@@ -548,17 +511,6 @@ void display(){
 	for(auto object : objects)
     {
         object -> draw();
-    }
-
-    if(draw_circle)
-    {
-        glPushMatrix();
-        {
-            //translate to sphere's center
-            glTranslatef(cur_pixel.x, cur_pixel.y, cur_pixel.z);
-            glColor3f(1, 0, 1);
-            drawSphere(10, 100, 100);
-        }glPopMatrix();
     }
 
 	//ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)

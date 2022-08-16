@@ -384,12 +384,12 @@ public:
         double aa = a*dx*dx + b*dy*dy + c*dz*dz + d*dx*dy + e*dy*dz + f*dz*dx;
 
         //coefficient of t
-        double bb = 2*a*dx*rx + 2*b*dy*ry + 2*c*dz*rz + d*rx*dy + d*dx*ry + e*dy*rz + e*ry*dz + f*dx*rz + f*dz*rx + g*dx + h*dy + i*dz;
+        double bb = 2.0*a*dx*rx + 2.0*b*dy*ry + 2.0*c*dz*rz + d*rx*dy + d*dx*ry + e*dy*rz + e*ry*dz + f*dx*rz + f*dz*rx + g*dx + h*dy + i*dz;
 
         //constant
         double cc = a*rx*rx + b*ry*ry + c*rz*rz + d*rx*ry + e*ry*rz + f*rx*rz + g*rx + h*ry + i*rz + j;
 
-        double dd_square = bb * bb - 4 * aa * cc;
+        double dd_square = bb * bb - 4.0 * aa * cc;
 
         //if dd^2 < 0, ray does not intersect the surface
         if(dd_square >= 0.0)
@@ -493,11 +493,11 @@ public:
 
         for(int i=0; i<tileNumbers; i++)
         {
-            int x = floorOriginX - i * tileWidth;
+            double x = floorOriginX - i * tileWidth;
 
             for(int j=0; j<tileNumbers; j++)
             {
-                int y = floorOriginY - j * tileWidth;
+                double y = floorOriginY - j * tileWidth;
 
                 if(i % 2 == 0)
                 {
@@ -522,6 +522,19 @@ public:
         }
     }
 
+//    double intersect(Ray *r, double *color, int level)
+//    {
+//        //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
+//        //D = (0, 0, 1) dot (0, 0, 0) = 0
+//        //t = -(D + normal dot R0) / normal dot Rd
+//        if(r->dir.z == 0.0)
+//            return -1.0;
+//
+//        double t = -(r->start.z) / (r->dir.z);
+//
+//        return t;
+//    }
+
     double intersect(Ray *r, double *color, int level)
     {
         //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
@@ -531,6 +544,26 @@ public:
             return -1.0;
 
         double t = -(r->start.z) / (r->dir.z);
+
+        //determine if the intersecting point is inside the tile/square
+        //intersecting point = R0 + t*Rd
+        Vector3D intersectPoint = r->start + r->dir * t;
+        double x = intersectPoint.x;
+        double y = intersectPoint.y;
+
+        int i = int(floor((floorWidth / 2.0 - x) / tileWidth));
+        int j = int(floor((floorWidth / 2.0 - y) / tileWidth));
+
+        if(i % 2 == 0)
+        {
+            if(j % 2 == 0)  this->setColor(0, 0, 0);
+            else    this->setColor(1, 1, 1);
+        }
+        else
+        {
+            if(j % 2 == 1)  this->setColor(0, 0, 0);
+            else    this->setColor(1, 1, 1);
+        }
 
         return t;
     }

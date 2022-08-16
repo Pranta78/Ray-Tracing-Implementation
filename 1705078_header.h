@@ -310,13 +310,13 @@ void loadData(string filename)
     }
 
     //the floor
-//    Object *temp;
-//    temp = new Floor(1000, 20);
-//    temp->setCoEfficients(0.4, 0.2, 0.2, 0.2);
-//    temp->setShine(10);
-//    objects.push_back(temp);
+    Object *temp;
+    temp = new Floor(1000, 20);
+    temp->setCoEfficients(0.4, 0.2, 0.2, 0.2);
+    temp->setShine(10);
+    objects.push_back(temp);
 
-    createFloor(1000, 20);
+    //createFloor(1000, 20);
 
     sceneFile.close();
 }
