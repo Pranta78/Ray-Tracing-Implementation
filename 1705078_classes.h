@@ -65,7 +65,7 @@ public:
         return sqrt(x*x + y*y + z*z);
     }
 
-    void unit()
+    void normalize()
     {
         double dist = sqrt(x*x + y*y + z*z);
         x /= dist;
@@ -219,10 +219,15 @@ public:
 //Vector3D r = {0.999041, -0.0437915, 0};
 //Vector3D l = {0.0437915, 0.999041, 0};
 
-Vector3D cameraPosition = {0, 0, -100};
-Vector3D u = {0, 1, 0};
-Vector3D r = {1, 0, 0};
-Vector3D l = {0, 0, -1};
+//Vector3D cameraPosition = {0, 0, -100};
+//Vector3D u = {0, 1, 0};
+//Vector3D r = {1, 0, 0};
+//Vector3D l = {0, 0, -1};
+
+Vector3D cameraPosition = {21.7096, 67.5, -39.2561};
+Vector3D u = {0.0243135, 0.994905, 0.0978404};
+Vector3D r = {-0.942009, -0.00996671, 0.335439};
+Vector3D l = {0.334705, -0.100322, 0.936967};
 
 vector <PointLight> pointLights;
 vector <SpotLight> spotLights;
@@ -455,24 +460,20 @@ public:
         Vector3D intersectPoint = r->start + r->dir * t_min;
         Color intersectPointColor = this->color;
 
-        //cout << "Amb = " << coefficients[AMBIENT] << "\n";
-
         //ambient component
         this->pixelColor = intersectPointColor * coefficients[AMBIENT];
-        //this->pixelColor = intersectPointColor;
         color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
         color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
         color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
 
         Vector3D normal  = intersectPoint - center;
-        //Vector3D normal  = center - intersectPoint;
-        normal.unit();
+        normal.normalize();
 
         for(auto pl : pointLights)
         {
+            //direction of the incident ray on the surface
             Vector3D rayl = intersectPoint - pl.light_pos;
-            //Vector3D rayl = pl.light_pos - intersectPoint;
-            rayl.unit();
+            rayl.normalize();
 
             //find if rayl is obscured by any object
             Ray *ray = new Ray(pl.light_pos, rayl);
@@ -501,27 +502,44 @@ public:
             //diffuse component
             //double lambertValue = (normal % rayl) / (normal.distance() * rayl.distance());
             Vector3D rayInv = pl.light_pos - intersectPoint;
-            rayInv.unit();
+            rayInv.normalize();
+
             double lambertValue = (normal % rayInv);
-
-            //Vector3D rayr = rayl - 2.0 * (rayl % normal) * normal;
-            //Vector3D negRayL(-rayl.x, -rayl.y, -rayl.z);
-//            Vector3D negNormal(-normal.x, -normal.y, -normal.z);
-//            double lambertValue = (negNormal % negRayL) / (negNormal.distance() * negRayL.distance());
-            //double lambertValue = (normal % negRayL);
-
             lambertValue = max(lambertValue, 0.0);
 
             this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
 
-//            //specular component
-//            Vector3D rayv = intersectPoint - cameraPosition;
-//            Vector3D rayr = 2.0 * (rayl % normal) * normal - rayl;
+            //specular component
+            //Vector3D rayv = intersectPoint - cameraPosition;
+//            Vector3D rayv = cameraPosition - intersectPoint;
+//            rayv.normalize();
 //
-//            double phongValue = (rayv % rayr) / (rayv.distance() * rayr.distance());
-//            phongValue = max(pow(phongValue,this->shine*1.0), 0.0);
+//            //Vector3D rayr = 2.0 * (rayl % normal) * normal - rayl;
+//            //Vector3D rayr = rayInv - ((2.0 * (rayInv % normal)) * normal);
+//            //Vector3D rayr = rayl - ((2.0 * (rayl % normal)) * normal);
+//            Vector3D rayr = ((2.0 * (rayl % normal)) * normal) - rayl;
+//            //Vector3D rayr = ((2.0 * (rayInv % normal)) * normal) - rayInv;
+//            rayr.normalize();
 //
-//            this->pixelColor = this->pixelColor + pl.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
+//            //double phongValue = (rayv % rayr) / (rayv.distance() * rayr.distance());
+//            //double phongValue = (rayv % rayr);
+//            double phongValue = (rayInv % rayr);
+
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
+
+            Vector3D rayr = ((2.0 * (rayInv % normal)) * normal) - rayInv;
+            rayr.normalize();
+
+            double phongValue = (rayr % rayInv);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            Color before = this->pixelColor;
+
+            //this->pixelColor = this->pixelColor + pl.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
+            //this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color) ^ intersectPointColor);
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
 
             color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
             color[1] = min(max(this->pixelColor.g, 0.0), 1.0);

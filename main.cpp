@@ -594,7 +594,7 @@ int main(int argc, char **argv){
 
 	glutCreateWindow("My OpenGL Program");
 
-	loadData("scene6.txt");
+	loadData("scene7.txt");
 
 	init();
 
