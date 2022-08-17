@@ -1,7 +1,13 @@
 #ifndef CLASSES_H_INCLUDED
 #define CLASSES_H_INCLUDED
 
+#define eps 1e-20
 #define pi (2*acos(0.0))
+
+#define AMBIENT 0
+#define DIFFUSE 1
+#define SPECULAR 2
+#define REFLECTION 0
 
 class Vector3D
 {
@@ -59,6 +65,129 @@ public:
     }
 };
 
+class PointLight
+{
+public:
+    Vector3D light_pos;
+    double color[3];
+    double **shadow_buffer;
+
+    PointLight()    {}
+
+    PointLight(Vector3D light_pos, double r, double g, double b)
+    {
+        this->light_pos = light_pos;
+        this->color[0] = r;
+        this->color[1] = g;
+        this->color[2] = b;
+    }
+
+    void calculateShadowBuffer(int numPixels, int windowHeight, int windowWidth, double viewAngle)
+    {
+//        if(shadow_buffer)
+//        {
+//            for (int i = 0; i < numPixels; ++i)
+//                if(shadow_buffer[i])    delete[] shadow_buffer[i];
+//
+//            delete[] shadow_buffer;
+//        }
+//
+//        shadow_buffer = new double*[numPixels];
+//
+//        for (int i = 0; i < numPixels; ++i)
+//            shadow_buffer[i] = new double[numPixels];
+//
+//        double planeDistance = (windowHeight / 2.0) / tan(viewAngle * pi / (2.0 * 180));
+//
+//        Vector3D topleft = light_pos + l * planeDistance - r * windowWidth / 2.0 + u * windowHeight / 2.0;
+//
+//        imageWidth = pixelNumbers;
+//        imageHeight = pixelNumbers;
+//
+//        double du = windowWidth * 1.0 / imageWidth;
+//        double dv = windowHeight * 1.0 / imageHeight;
+//
+//        //Choose middle of the grid cell
+//        topleft = topleft + r * (0.5 * du) - u * (0.5 * dv);
+//
+//        for(int i=0; i<imageWidth; i++)
+//        {
+//            for(int j=0; j<imageHeight; j++)
+//            {
+//                Vector3D curPixel = topleft + r * du * j - u * dv * i;
+//
+//                Ray *ray = new Ray(light_pos, curPixel - light_pos);
+//                double *dummyColor = new double[3];
+//                double nearestColor[3];
+//
+//                Object *nearest = NULL;
+//                double tMin = 1e50;
+//
+//                for(auto object : objects)
+//                {
+//                    double t = object->intersect(ray, dummyColor, 0);
+//
+//                    //save nearest object
+//                    if(t >= 0)
+//                        if(tMin > t)
+//                        {
+//                            nearest = object;
+//                            tMin = min(tMin, t);
+//                        }
+//                }
+//
+//                if(nearest != NULL)
+//                {
+//                    tMin = nearest -> intersect(ray, dummyColor, 0);
+//                    //store the distance between the position of point light and intersecting point
+//                    Vector3D intersectingPoint = ray->start + ray->dir * tMin;
+//                    shadow_buffer[i][j] = sqrt((intersectingPoint.x - light_pos.x) * (intersectingPoint.x - light_pos.x)
+//                                              +(intersectingPoint.y - light_pos.y) * (intersectingPoint.y - light_pos.y)
+//                                              +(intersectingPoint.z - light_pos.z) * (intersectingPoint.z - light_pos.z));
+//                }
+//            }
+//        }
+    }
+};
+
+class SpotLight
+{
+    PointLight point_light;
+    Vector3D light_direction;
+    double cutoff_angle;
+
+public:
+    SpotLight(PointLight point_light, Vector3D direction, double cutoff_angle)
+    {
+        this->point_light = point_light;
+        this->light_direction = direction;
+        this->cutoff_angle = cutoff_angle;
+    }
+};
+
+vector <PointLight> pointLights;
+vector <SpotLight> spotLights;
+
+class Color
+{
+public:
+    double r, g, b;
+
+    Color()  {}
+
+    Color(double x, double y, double z)
+    {
+        this->r = x;
+        this->g = y;
+        this->b = z;
+    }
+
+    Color operator*(double a) const
+    {
+        return Color(r*a, g*a, b*a);
+    }
+};
+
 class Ray
 {
 public:
@@ -103,7 +232,9 @@ class Object
 public:
     Vector3D reference_point;
     double height, width, length;
-    double color[3];
+    //double color[3];
+    Color color;
+    Color pixelColor;
     double coefficients[4]; //ambient, diffuse, specular, reflection coefficient
     int shine;  //exponent term of specular component
 
@@ -130,9 +261,13 @@ public:
 
     void setColor(double red, double green, double blue)
     {
-        color[0] = red;
-        color[1] = green;
-        color[2] = blue;
+//        color[0] = red;
+//        color[1] = green;
+//        color[2] = blue;
+
+        color.r = red;
+        color.g = green;
+        color.b = blue;
     }
 
     void setShine(int shine)
@@ -150,9 +285,11 @@ public:
 
     void print()
     {
-        cout << "Object Color: r = " << color[0] << ", g = " << color[1] << ", b = " << color[2] << "\n";
+        cout << "Object Color: r = " << color.r << ", g = " << color.g << ", b = " << color.b << "\n";
     }
 };
+
+vector <Object*> objects;
 
 class Sphere : public Object
 {
@@ -197,7 +334,8 @@ public:
             //translate to sphere's center
             glTranslatef(center.x, center.y, center.z);
 
-            glColor3f(color[0], color[1], color[2]);
+            //glColor3f(color[0], color[1], color[2]);
+            glColor3f(color.r, color.g, color.b);
 
             //draw quads using generated points
             for(i=0;i<stacks;i++)
@@ -235,6 +373,8 @@ public:
         double c = R0 % R0 - radius * radius;
         double d_square = b*b - 4*a*c;
 
+        double t_min = -1.0;
+
         //if d^2 < 0, ray does not intersect the sphere
         if(d_square >= 0.0)
         {
@@ -245,16 +385,67 @@ public:
 
             //take closest positive
             if(t1 >= 0 && t2 >= 0)
-                return min(t1, t2);
+                //return min(t1, t2);
+                t_min = min(t1, t2);
 
             if(t2 < 0.0)
-                return t1;
+                //return t1;
+                t_min = t1;
 
             if(t1 < 0.0)
-                return t2;
+                //return t2;
+                t_min = t2;
         }
 
-        return -1.0;
+        //return -1.0;
+        if(level == 0)
+            return t_min;
+
+        Vector3D intersectPoint = r->start + r->dir * t_min;
+        Color intersectPointColor = this->color;
+
+        //cout << "Amb = " << coefficients[AMBIENT] << "\n";
+
+        this->pixelColor = intersectPointColor * coefficients[AMBIENT];
+        color[0] = this->pixelColor.r;
+        color[1] = this->pixelColor.g;
+        color[2] = this->pixelColor.b;
+
+        Vector3D normal  = intersectPoint - center;
+
+        for(auto pl : pointLights)
+        {
+            Vector3D rayl = intersectPoint - pl.light_pos;
+
+            //find if rayl is obscured by any object
+            Ray *ray = new Ray(pl.light_pos, rayl);
+            double *dummyColor = new double[3];
+            double tMin = 1e50;
+
+            double curT = this->intersect(ray, dummyColor, 0);
+
+            for(auto object : objects)
+            {
+                double iterT = object->intersect(ray, dummyColor, 0);
+
+                if(iterT >= 0)
+                    if(tMin > iterT)
+                    {
+                        tMin = min(tMin, iterT);
+                    }
+            }
+
+            //another object is closer to the ray i.e. current object obscured
+            if(tMin < curT || curT < 0)
+            {
+                //only ambient components need to be calculated
+                return t_min;
+            }
+
+
+        }
+
+        return t_min;
     }
 };
 
@@ -272,7 +463,8 @@ public:
 
     void draw()
     {
-        glColor3f(color[0], color[1], color[2]);
+        //glColor3f(color[0], color[1], color[2]);
+        glColor3f(color.r, color.g, color.b);
 
         glBegin(GL_TRIANGLES);
         {
@@ -481,7 +673,8 @@ public:
 
     void draw()
     {
-        glColor3f(color[0], color[1], color[2]);
+        //glColor3f(color[0], color[1], color[2]);
+        glColor3f(color.r, color.g, color.b);
 
         glBegin(GL_QUADS);
         {
@@ -617,39 +810,6 @@ public:
         return t;
     }
 };
-
-class PointLight
-{
-    Vector3D light_pos;
-    double color[3];
-
-public:
-    PointLight()    {}
-
-    PointLight(Vector3D light_pos, double r, double g, double b)
-    {
-        this->light_pos = light_pos;
-        this->color[0] = r;
-        this->color[1] = g;
-        this->color[2] = b;
-    }
-};
-
-class SpotLight
-{
-    PointLight point_light;
-    Vector3D light_direction;
-    double cutoff_angle;
-
-public:
-    SpotLight(PointLight point_light, Vector3D direction, double cutoff_angle)
-    {
-        this->point_light = point_light;
-        this->light_direction = direction;
-        this->cutoff_angle = cutoff_angle;
-    }
-};
-
 
 
 #endif // CLASSES_H_INCLUDED

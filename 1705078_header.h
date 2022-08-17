@@ -7,9 +7,13 @@ const string FOLDER = "";
 int recursion_level;
 int pixelNumbers;
 
-vector <Object*> objects;
-vector <PointLight> pointLights;
-vector <SpotLight> spotLights;
+//vector <Object*> objects;
+//vector <PointLight> pointLights;
+//vector <SpotLight> spotLights;
+
+extern vector <Object*> objects;
+extern vector <PointLight> pointLights;
+extern vector <SpotLight> spotLights;
 
 void createFloor(double floorWidth, double tileWidth)
 {

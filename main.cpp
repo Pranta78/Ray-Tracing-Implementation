@@ -92,10 +92,6 @@ void capture()
 
     cout << "Plane Distance = " << planeDistance << "!\n";
 
-    Vector3D ll(cameraPosition.x + l.x, cameraPosition.y + l.y, cameraPosition.z + l.z);
-    Vector3D uu(u.x, u.y, u.z);
-    Vector3D rr = ll ^ uu;
-
     Vector3D topleft = cameraPosition + l * planeDistance - r * windowWidth / 2.0 + u * windowHeight / 2.0;
     //Vector3D topleft = cameraPosition + lookDirection * planeDistance - rr * windowWidth / 2.0 + uu * windowHeight / 2.0;
 
@@ -134,7 +130,7 @@ void capture()
             double nearestColor[3];
 
             Object *nearest = NULL;
-            double t;
+            //double t;
             double tMin = 1e50;
 
             //cout << "here 2!\n";
@@ -152,9 +148,14 @@ void capture()
                     if(tMin > t)
                     {
                         nearest = object;
-                        nearestColor[0] = object->color[0];
-                        nearestColor[1] = object->color[1];
-                        nearestColor[2] = object->color[2];
+//                        nearestColor[0] = object->color[0];
+//                        nearestColor[1] = object->color[1];
+//                        nearestColor[2] = object->color[2];
+//                        nearestColor[0] = object->color.r;
+//                        nearestColor[1] = object->color.g;
+//                        nearestColor[2] = object->color.b;
+                        for(int e=0; e<3; e++)  nearestColor[e] = dummyColor[e];
+
                         tMin = min(tMin, t);
                         //cout << "Updated! t = " << t << ", tMin = " << tMin << "\n";
                         //image.set_pixel(j, i, 1, 0, 1);
@@ -164,9 +165,7 @@ void capture()
             if(nearest != NULL)
             {
                 tMin = nearest -> intersect(ray, dummyColor, 1);
-                nearestColor[0] = nearest->color[0];
-                nearestColor[1] = nearest->color[1];
-                nearestColor[2] = nearest->color[2];
+                for(int e=0; e<3; e++)  nearestColor[e] = dummyColor[e];
                 //cout << "Updating i = " << i << ", j = " << j << "\tr = " << nearest->color[0] << ", g = " << nearest->color[1] << ", b = " << nearest->color[2] << "\n";
                 //image.set_pixel(j, i, nearest->color[0]*255.0, nearest->color[1]*255.0, nearest->color[2]*255.0);
                 image.set_pixel(j, i, nearestColor[0]*255.0, nearestColor[1]*255.0, nearestColor[2]*255.0);
