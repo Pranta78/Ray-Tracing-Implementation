@@ -16,8 +16,6 @@ using namespace std;
 #include "1705078_header.h"
 #include "bitmap_image.hpp"
 
-#define root_2 sqrt(2.0)
-
 #define windowHeight 768
 #define windowWidth 768
 #define viewAngle 90
@@ -33,16 +31,21 @@ struct point
 	double x,y,z;
 };
 
-//Vector3D cameraPosition = {100, 100, 0};
-Vector3D cameraPosition = {128.482, 96.9838, 52.5};
-//Vector3D cameraPosition = {63.4918, -92.1987, 39};
-//Vector3D cameraPosition = {-37.3664, 107.725, 52.5};
-//Vector3D cameraPosition = {151.476, 85.2762, 52.5};
-//Vector3D cameraPosition = {-9.43898, -89.0654, 52.5};
-//Vector3D cameraPosition = {8.73062, -72.1185, 45.0012};
-Vector3D u = {0, 0, 1};
-Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
-Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
+////Vector3D cameraPosition = {100, 100, 0};
+//Vector3D cameraPosition = {128.482, 96.9838, 52.5};
+////Vector3D cameraPosition = {63.4918, -92.1987, 39};
+////Vector3D cameraPosition = {-37.3664, 107.725, 52.5};
+////Vector3D cameraPosition = {151.476, 85.2762, 52.5};
+////Vector3D cameraPosition = {-9.43898, -89.0654, 52.5};
+////Vector3D cameraPosition = {8.73062, -72.1185, 45.0012};
+//Vector3D u = {0, 0, 1};
+//Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
+//Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
+
+extern Vector3D cameraPosition;
+extern Vector3D u;
+extern Vector3D r;
+extern Vector3D l;
 
 //Vector3D cameraPosition = {0, 0, 595.8767963};
 //Vector3D u = {0, 1, 0};
@@ -449,6 +452,9 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
 				drawaxes=1-drawaxes;
 				cout << "Camera Position: " << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << "\n";
+				cout << "l: " << l.x << ", " << l.y << ", " << l.z << "\n";
+				cout << "u: " << u.x << ", " << u.y << ", " << u.z << "\n";
+				cout << "r: " << r.x << ", " << r.y << ", " << r.z << "\n";
 			}
 			break;
 
@@ -465,7 +471,28 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 	}
 }
 
+void drawAxes()
+{
+    double lineLength = 200.0;
 
+	if(drawaxes==1)
+	{
+		glColor3f(1.0, 1.0, 1.0);
+		glBegin(GL_LINES);{
+		    glColor3f(1, 0, 0);
+			glVertex3f( lineLength,0,0);
+			glVertex3f(-lineLength,0,0);
+
+			glColor3f(0, 1, 0);
+			glVertex3f(0,-lineLength,0);
+			glVertex3f(0, lineLength,0);
+
+			glColor3f(0, 0, 1);
+			glVertex3f(0,0, lineLength);
+			glVertex3f(0,0,-lineLength);
+		}glEnd();
+	}
+}
 
 void display(){
 
@@ -506,10 +533,16 @@ void display(){
 	//add objects
 
 	//cout << "Total objects: " << objects.size() << "\n";
+	drawAxes();
 
 	for(auto object : objects)
     {
         object -> draw();
+    }
+
+    for(auto pl : pointLights)
+    {
+        pl.draw();
     }
 
 	//ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
@@ -561,7 +594,7 @@ int main(int argc, char **argv){
 
 	glutCreateWindow("My OpenGL Program");
 
-	loadData("scene.txt");
+	loadData("scene6.txt");
 
 	init();
 
