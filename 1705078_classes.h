@@ -59,9 +59,52 @@ public:
         return Vector3D(a.z*y - a.y*z, a.x*z - a.z*x, a.y*x - a.x*y);
     }
 
+    double distance()
+    {
+        return sqrt(x*x + y*y + z*z);
+    }
+
+    void unit()
+    {
+        double dist = sqrt(x*x + y*y + z*z);
+        x /= dist;
+        y /= dist;
+        z /= dist;
+    }
+
     friend Vector3D operator*(double a, const Vector3D& v)
     {
         return Vector3D(a*v.x, a*v.y, a*v.z);
+    }
+};
+
+class Color
+{
+public:
+    double r, g, b;
+
+    Color()  {}
+
+    Color(double x, double y, double z)
+    {
+        this->r = x;
+        this->g = y;
+        this->b = z;
+    }
+
+	Color operator+(const Color& a) const
+    {
+        return Color(a.r+r, a.g+g, a.b+b);
+    }
+
+    Color operator*(double a) const
+    {
+        return Color(r*a, g*a, b*a);
+    }
+
+    Color operator^(const Color& a) const
+    {
+        return Color(r*a.r, g*a.g, b*a.b);
     }
 };
 
@@ -69,84 +112,20 @@ class PointLight
 {
 public:
     Vector3D light_pos;
-    double color[3];
-    double **shadow_buffer;
+    //double color[3];
+    Color color;
 
     PointLight()    {}
 
     PointLight(Vector3D light_pos, double r, double g, double b)
     {
         this->light_pos = light_pos;
-        this->color[0] = r;
-        this->color[1] = g;
-        this->color[2] = b;
-    }
-
-    void calculateShadowBuffer(int numPixels, int windowHeight, int windowWidth, double viewAngle)
-    {
-//        if(shadow_buffer)
-//        {
-//            for (int i = 0; i < numPixels; ++i)
-//                if(shadow_buffer[i])    delete[] shadow_buffer[i];
-//
-//            delete[] shadow_buffer;
-//        }
-//
-//        shadow_buffer = new double*[numPixels];
-//
-//        for (int i = 0; i < numPixels; ++i)
-//            shadow_buffer[i] = new double[numPixels];
-//
-//        double planeDistance = (windowHeight / 2.0) / tan(viewAngle * pi / (2.0 * 180));
-//
-//        Vector3D topleft = light_pos + l * planeDistance - r * windowWidth / 2.0 + u * windowHeight / 2.0;
-//
-//        imageWidth = pixelNumbers;
-//        imageHeight = pixelNumbers;
-//
-//        double du = windowWidth * 1.0 / imageWidth;
-//        double dv = windowHeight * 1.0 / imageHeight;
-//
-//        //Choose middle of the grid cell
-//        topleft = topleft + r * (0.5 * du) - u * (0.5 * dv);
-//
-//        for(int i=0; i<imageWidth; i++)
-//        {
-//            for(int j=0; j<imageHeight; j++)
-//            {
-//                Vector3D curPixel = topleft + r * du * j - u * dv * i;
-//
-//                Ray *ray = new Ray(light_pos, curPixel - light_pos);
-//                double *dummyColor = new double[3];
-//                double nearestColor[3];
-//
-//                Object *nearest = NULL;
-//                double tMin = 1e50;
-//
-//                for(auto object : objects)
-//                {
-//                    double t = object->intersect(ray, dummyColor, 0);
-//
-//                    //save nearest object
-//                    if(t >= 0)
-//                        if(tMin > t)
-//                        {
-//                            nearest = object;
-//                            tMin = min(tMin, t);
-//                        }
-//                }
-//
-//                if(nearest != NULL)
-//                {
-//                    tMin = nearest -> intersect(ray, dummyColor, 0);
-//                    //store the distance between the position of point light and intersecting point
-//                    Vector3D intersectingPoint = ray->start + ray->dir * tMin;
-//                    shadow_buffer[i][j] = sqrt((intersectingPoint.x - light_pos.x) * (intersectingPoint.x - light_pos.x)
-//                                              +(intersectingPoint.y - light_pos.y) * (intersectingPoint.y - light_pos.y)
-//                                              +(intersectingPoint.z - light_pos.z) * (intersectingPoint.z - light_pos.z));
-//                }
-//            }
-//        }
+//        this->color[0] = r;
+//        this->color[1] = g;
+//        this->color[2] = b;
+        color.r = r;
+        color.g = g;
+        color.b = b;
     }
 };
 
@@ -167,26 +146,6 @@ public:
 
 vector <PointLight> pointLights;
 vector <SpotLight> spotLights;
-
-class Color
-{
-public:
-    double r, g, b;
-
-    Color()  {}
-
-    Color(double x, double y, double z)
-    {
-        this->r = x;
-        this->g = y;
-        this->b = z;
-    }
-
-    Color operator*(double a) const
-    {
-        return Color(r*a, g*a, b*a);
-    }
-};
 
 class Ray
 {
@@ -406,6 +365,7 @@ public:
 
         //cout << "Amb = " << coefficients[AMBIENT] << "\n";
 
+        //ambient component
         this->pixelColor = intersectPointColor * coefficients[AMBIENT];
         color[0] = this->pixelColor.r;
         color[1] = this->pixelColor.g;
@@ -442,7 +402,15 @@ public:
                 return t_min;
             }
 
+            //diffuse component
+            double lambertValue = (normal % rayl) / (normal.distance() * rayl.distance());
+            lambertValue = max(lambertValue, 0.0);
 
+            this->pixelColor = this->pixelColor + pl.color * coefficients[DIFFUSE] * lambertValue ^ intersectPointColor;
+
+            color[0] = this->pixelColor.r;
+            color[1] = this->pixelColor.g;
+            color[2] = this->pixelColor.b;
         }
 
         return t_min;
