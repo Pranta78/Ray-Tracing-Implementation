@@ -451,10 +451,15 @@ void mouseListener(int button, int state, int x, int y){	//x, y is the x-y of th
 		case GLUT_LEFT_BUTTON:
 			if(state == GLUT_DOWN){		// 2 times?? in ONE click? -- solution is checking DOWN or UP
 				drawaxes=1-drawaxes;
-				cout << "Camera Position: " << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << "\n";
-				cout << "l: " << l.x << ", " << l.y << ", " << l.z << "\n";
-				cout << "u: " << u.x << ", " << u.y << ", " << u.z << "\n";
-				cout << "r: " << r.x << ", " << r.y << ", " << r.z << "\n";
+//				cout << "Camera Position: " << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << "\n";
+//				cout << "l: " << l.x << ", " << l.y << ", " << l.z << "\n";
+//				cout << "u: " << u.x << ", " << u.y << ", " << u.z << "\n";
+//				cout << "r: " << r.x << ", " << r.y << ", " << r.z << "\n";
+
+				cout << "Vector3D cameraPosition = {" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << "};\n";
+				cout << "Vector3D l = {" << l.x << ", " << l.y << ", " << l.z << "};\n";
+				cout << "Vector3D u = {" << u.x << ", " << u.y << ", " << u.z << "};\n";
+				cout << "Vector3D r = {" << r.x << ", " << r.y << ", " << r.z << "};\n";
 			}
 			break;
 
@@ -545,6 +550,11 @@ void display(){
         pl.draw();
     }
 
+    for(auto spl : spotLights)
+    {
+        spl.draw();
+    }
+
 	//ADD this line in the end --- if you use double buffer (i.e. GL_DOUBLE)
 	glutSwapBuffers();
 }
@@ -594,7 +604,7 @@ int main(int argc, char **argv){
 
 	glutCreateWindow("My OpenGL Program");
 
-	loadData("scene7.txt");
+	loadData("scene9.txt");
 
 	init();
 
