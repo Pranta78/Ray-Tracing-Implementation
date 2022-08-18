@@ -4,7 +4,7 @@
 #include "1705078_classes.h"
 
 const string FOLDER = "";
-int recursion_level;
+extern int recursion_level;
 int pixelNumbers;
 
 //vector <Object*> objects;

@@ -10,6 +10,8 @@
 #define SPECULAR 2
 #define REFLECTION 0
 
+int recursion_level;
+
 class Vector3D
 {
 public:
@@ -136,7 +138,7 @@ public:
 
     void draw()
     {
-        drawSphere(5, 100, 100);
+        drawSphere(1, 100, 100);
     }
 
     void drawSphere(double radius, int stacks, int slices)
@@ -286,6 +288,11 @@ Vector3D l = {0.0437915, 0.999041, 0};
 //Vector3D u = {-0.136638, 0.980067, 0.14422};
 //Vector3D r = {-0.725932, 0, -0.687766};
 //Vector3D l = {-0.674057, -0.198669, 0.711462};
+
+//Vector3D cameraPosition = {-20.7319, -76.8204, 117.029};
+//Vector3D l = {0.0236606, 0.539784, -0.841471};
+//Vector3D u = {0.0368493, 0.840664, 0.540302};
+//Vector3D r = {0.999041, -0.0437915, 0};
 
 vector <PointLight> pointLights;
 vector <SpotLight> spotLights;
@@ -504,7 +511,7 @@ public:
         color[2] = min(max(this->color.b, 0.0), 1.0);
 
         //return -1.0;
-        if(level == 0)
+        if(level == 0 || level >= recursion_level)
             return t_min;
 
         Vector3D intersectPoint = r->start + r->dir * t_min;
@@ -780,6 +787,30 @@ public:
 
         //cross product of (b-a) and (c-a)
         Vector3D normal = (point2 - point1) ^ (point3 - point1);
+        //Vector3D normal = (point1 - point2) ^ (point3 - point2);
+        //normal.normalize();
+
+        //derive eqn of the plane the triangle is on
+//        double tx = normal.x;
+//        double ty = normal.y;
+//        double tz = normal.z;
+//        double td = -(point1 % normal);
+//
+//        //a point along a side of the triangle
+//        Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
+//                           point1.y + 1.0 * normal.y / normal.distance(),
+//                           point1.z + 1.0 * normal.z / normal.distance());
+//
+//        double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
+//        double intersectPointVal = tx * intersectPoint.x + ty * intersectPoint.y + tz * intersectPoint.z + td;
+//
+//        if((randPointVal < 0 && intersectPointVal > 0) || (randPointVal > 0 && intersectPointVal < 0))
+//        {
+//            normal.x = -normal.x;
+//            normal.y = -normal.y;
+//            normal.z = -normal.z;
+//        }
+
         normal.normalize();
 
         for(auto pl : pointLights)
@@ -1359,11 +1390,14 @@ public:
         //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
         //D = (0, 0, 1) dot (0, 0, 0) = 0
         //t = -(D + normal dot R0) / normal dot Rd
+        double t_min;
+
         if(r->dir.z == 0.0)
-            return -1.0;
+            //return -1.0;
+            t_min = -1.0;
 
         //double t = -(r->start.z) / (r->dir.z);
-        double t_min = -(r->start.z) / (r->dir.z);
+        t_min = -(r->start.z) / (r->dir.z);
 
         //determine if the intersecting point is inside the tile/square
         //intersecting point = R0 + t*Rd
@@ -1372,8 +1406,8 @@ public:
         double x = intersectPoint.x;
         double y = intersectPoint.y;
 
-        int i = int(floor((floorWidth / 2.0 - x) / tileWidth));
-        int j = int(floor((floorWidth / 2.0 - y) / tileWidth));
+        int i = int(floor((floorWidth / 2.0 - x * 1.0) / (tileWidth * 1.0)));
+        int j = int(floor((floorWidth / 2.0 - y * 1.0) / (tileWidth * 1.0)));
 
 //        if(i % 2 == 0)
 //        {
