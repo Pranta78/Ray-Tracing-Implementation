@@ -422,31 +422,31 @@ public:
         //if d^2 < 0, ray does not intersect the sphere
         if(d_square >= 0.0)
         {
-//            double d = sqrt(d_square);
-//
-//            double t1 = (-b + d) / (2.0 * a);
-//            double t2 = (-b - d) / (2.0 * a);
-//
-//            //take closest positive
-//            if(t1 >= 0 && t2 >= 0)
-//                //return min(t1, t2);
-//                t_min = min(t1, t2);
-//
-//            else if(t2 < 0.0)
-//                //return t1;
-//                t_min = t1;
-//
-//            else if(t1 < 0.0)
-//                //return t2;
-//                t_min = t2;
-
             double d = sqrt(d_square);
-            double t = (-b - d) / (2.0 * a);
 
-            if(t > 0.0)
-                t_min = t;
-            else
-                t_min = (-b + d) / (2.0 * a);
+            double t1 = (-b + d) / (2.0 * a);
+            double t2 = (-b - d) / (2.0 * a);
+
+            //take closest positive
+            if(t1 >= 0 && t2 >= 0)
+                //return min(t1, t2);
+                t_min = min(t1, t2);
+
+            else if(t2 < 0.0)
+                //return t1;
+                t_min = t1;
+
+            else if(t1 < 0.0)
+                //return t2;
+                t_min = t2;
+
+//            double d = sqrt(d_square);
+//            double t = (-b - d) / (2.0 * a);
+//
+//            if(t > 0.0)
+//                t_min = t;
+//            else
+//                t_min = (-b + d) / (2.0 * a);
         }
 
         color[0] = min(max(this->color.r, 0.0), 1.0);
@@ -481,6 +481,18 @@ public:
             double tMin = 1e50;
 
             double curT = this->intersect(ray, dummyColor, 0);
+            //double curT = 1.0;
+
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
+            //cout << "Cur t = " << curT << "\n";
 
             for(auto object : objects)
             {
@@ -489,14 +501,15 @@ public:
                 if(iterT >= 0)
                     if(tMin > iterT)
                     {
-                        tMin = min(tMin, iterT);
+                        tMin = iterT;
                     }
             }
 
             //another object is closer to the ray i.e. current object obscured
             if(tMin < curT) //|| curT < 0
             {
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //diffuse component
@@ -525,17 +538,19 @@ public:
 //            //double phongValue = (rayv % rayr);
 //            double phongValue = (rayInv % rayr);
 
+            //cout << "Camera Position: x = " << cameraPosition.x << ", y = " << cameraPosition.y << ", z = " << cameraPosition.z << "\n";
             Vector3D rayv = cameraPosition - intersectPoint;
+            //Vector3D rayv = intersectPoint - cameraPosition;
             rayv.normalize();
 
-            Vector3D rayr = ((2.0 * (rayInv % normal)) * normal) - rayInv;
+            //Vector3D rayr = ((2.0 * (rayInv % normal)) * normal) - rayInv;
+            //Vector3D rayr = rayl - ((2.0 * (rayl % normal)) * normal);
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
             rayr.normalize();
 
-            double phongValue = (rayr % rayInv);
+            double phongValue = (rayr % rayv);
 
             phongValue = max(pow(phongValue, this->shine), 0.0);
-
-            Color before = this->pixelColor;
 
             //this->pixelColor = this->pixelColor + pl.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
             //this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color) ^ intersectPointColor);
