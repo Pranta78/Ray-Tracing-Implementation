@@ -197,7 +197,8 @@ public:
     SpotLight(PointLight point_light, Vector3D direction, double cutoff_angle)
     {
         this->point_light = point_light;
-        this->light_direction = direction;
+        //this->light_direction = direction;
+        this->light_direction = direction + point_light.light_pos;
         this->light_direction.normalize();
         this->cutoff_angle = cutoff_angle;
     }
@@ -266,10 +267,10 @@ public:
 //Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
 //Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
 
-//Vector3D cameraPosition = {12.1908, -113.561, 44.6955};
-//Vector3D u = {0, 0, 1};
-//Vector3D r = {0.999041, -0.0437915, 0};
-//Vector3D l = {0.0437915, 0.999041, 0};
+Vector3D cameraPosition = {12.1908, -113.561, 44.6955};
+Vector3D u = {0, 0, 1};
+Vector3D r = {0.999041, -0.0437915, 0};
+Vector3D l = {0.0437915, 0.999041, 0};
 
 //Vector3D cameraPosition = {0, 0, -100};
 //Vector3D u = {0, 1, 0};
@@ -281,10 +282,10 @@ public:
 //Vector3D r = {-0.942009, -0.00996671, 0.335439};
 //Vector3D l = {0.334705, -0.100322, 0.936967};
 
-Vector3D cameraPosition = {55.6711, 62.5033, -13.884};
-Vector3D u = {-0.136638, 0.980067, 0.14422};
-Vector3D r = {-0.725932, 0, -0.687766};
-Vector3D l = {-0.674057, -0.198669, 0.711462};
+//Vector3D cameraPosition = {55.6711, 62.5033, -13.884};
+//Vector3D u = {-0.136638, 0.980067, 0.14422};
+//Vector3D r = {-0.725932, 0, -0.687766};
+//Vector3D l = {-0.674057, -0.198669, 0.711462};
 
 vector <PointLight> pointLights;
 vector <SpotLight> spotLights;
@@ -779,10 +780,13 @@ public:
 
         //cross product of (b-a) and (c-a)
         Vector3D normal = (point2 - point1) ^ (point3 - point1);
+        normal.normalize();
 
         for(auto pl : pointLights)
         {
+            //direction of the incident ray on the surface
             Vector3D rayl = intersectPoint - pl.light_pos;
+            rayl.normalize();
 
             //find if rayl is obscured by any object
             Ray *ray = new Ray(pl.light_pos, rayl);
@@ -791,6 +795,15 @@ public:
 
             double curT = this->intersect(ray, dummyColor, 0);
 
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
             for(auto object : objects)
             {
                 double iterT = object->intersect(ray, dummyColor, 0);
@@ -798,47 +811,60 @@ public:
                 if(iterT >= 0)
                     if(tMin > iterT)
                     {
-                        tMin = min(tMin, iterT);
+                        tMin = iterT;
                     }
             }
 
             //another object is closer to the ray i.e. current object obscured
-            if(tMin < curT || curT < 0)
+            if(tMin < curT) //|| curT < 0
             {
-                //only ambient components need to be calculated
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //diffuse component
-            double lambertValue = (normal % rayl) / (normal.distance() * rayl.distance());
+            Vector3D rayInv = pl.light_pos - intersectPoint;
+            rayInv.normalize();
+
+            double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
-            this->pixelColor = this->pixelColor + pl.color * coefficients[DIFFUSE] * lambertValue ^ intersectPointColor;
+            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
 
             //specular component
-            Vector3D rayv = intersectPoint - cameraPosition;
-            Vector3D rayr = 2.0 * (rayl % normal) * normal - rayl;
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
 
-            double phongValue = (rayv % rayr) / (rayv.distance() * rayr.distance());
-            phongValue = max(pow(phongValue,this->shine*1.0), 0.0);
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
+            rayr.normalize();
 
-            this->pixelColor = this->pixelColor + pl.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
+            double phongValue = (rayr % rayv);
 
-            color[0] = this->pixelColor.r;
-            color[1] = this->pixelColor.g;
-            color[2] = this->pixelColor.b;
+            phongValue = max(phongValue, 0.0);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
+
+            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         for(auto spl : spotLights)
         {
             Vector3D rayl = intersectPoint - spl.point_light.light_pos;
+            rayl.normalize();
 
             //check it the angle between rayl and light_direction is smaller than cutoff angle
-            double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
+            //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
+            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
 
             if(theta > spl.cutoff_angle)
             {
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //find if rayl is obscured by any object
@@ -848,6 +874,15 @@ public:
 
             double curT = this->intersect(ray, dummyColor, 0);
 
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
             for(auto object : objects)
             {
                 double iterT = object->intersect(ray, dummyColor, 0);
@@ -855,35 +890,44 @@ public:
                 if(iterT >= 0)
                     if(tMin > iterT)
                     {
-                        tMin = min(tMin, iterT);
+                        tMin = iterT;
                     }
             }
 
             //another object is closer to the ray i.e. current object obscured
-            if(tMin < curT || curT < 0)
+            if(tMin < curT) //|| curT < 0
             {
-                //only ambient components need to be calculated
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //diffuse component
-            double lambertValue = (normal % rayl) / (normal.distance() * rayl.distance());
+            Vector3D rayInv = spl.point_light.light_pos - intersectPoint;
+            rayInv.normalize();
+
+            double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
-            this->pixelColor = this->pixelColor + spl.point_light.color * coefficients[DIFFUSE] * lambertValue ^ intersectPointColor;
+            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * spl.point_light.color) ^ intersectPointColor);
 
             //specular component
-            Vector3D rayv = intersectPoint - cameraPosition;
-            Vector3D rayr = 2.0 * (rayl % normal) * normal - rayl;
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
 
-            double phongValue = (rayv % rayr) / (rayv.distance() * rayr.distance());
-            phongValue = max(pow(phongValue,this->shine*1.0), 0.0);
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
+            rayr.normalize();
 
-            this->pixelColor = this->pixelColor + spl.point_light.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
+            double phongValue = (rayr % rayv);
 
-            color[0] = this->pixelColor.r;
-            color[1] = this->pixelColor.g;
-            color[2] = this->pixelColor.b;
+            phongValue = max(phongValue, 0.0);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
+
+            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         return t_min;
@@ -1038,7 +1082,9 @@ public:
 
         for(auto pl : pointLights)
         {
+            //direction of the incident ray on the surface
             Vector3D rayl = intersectPoint - pl.light_pos;
+            rayl.normalize();
 
             //find if rayl is obscured by any object
             Ray *ray = new Ray(pl.light_pos, rayl);
@@ -1047,6 +1093,15 @@ public:
 
             double curT = this->intersect(ray, dummyColor, 0);
 
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
             for(auto object : objects)
             {
                 double iterT = object->intersect(ray, dummyColor, 0);
@@ -1054,47 +1109,60 @@ public:
                 if(iterT >= 0)
                     if(tMin > iterT)
                     {
-                        tMin = min(tMin, iterT);
+                        tMin = iterT;
                     }
             }
 
             //another object is closer to the ray i.e. current object obscured
-            if(tMin < curT || curT < 0)
+            if(tMin < curT) //|| curT < 0
             {
-                //only ambient components need to be calculated
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //diffuse component
-            double lambertValue = (normal % rayl) / (normal.distance() * rayl.distance());
+            Vector3D rayInv = pl.light_pos - intersectPoint;
+            rayInv.normalize();
+
+            double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
-            this->pixelColor = this->pixelColor + pl.color * coefficients[DIFFUSE] * lambertValue ^ intersectPointColor;
+            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
 
             //specular component
-            Vector3D rayv = intersectPoint - cameraPosition;
-            Vector3D rayr = 2.0 * (rayl % normal) * normal - rayl;
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
 
-            double phongValue = (rayv % rayr) / (rayv.distance() * rayr.distance());
-            phongValue = max(pow(phongValue,this->shine*1.0), 0.0);
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
+            rayr.normalize();
 
-            this->pixelColor = this->pixelColor + pl.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
+            double phongValue = (rayr % rayv);
 
-            color[0] = this->pixelColor.r;
-            color[1] = this->pixelColor.g;
-            color[2] = this->pixelColor.b;
+            phongValue = max(phongValue, 0.0);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
+
+            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         for(auto spl : spotLights)
         {
             Vector3D rayl = intersectPoint - spl.point_light.light_pos;
+            rayl.normalize();
 
             //check it the angle between rayl and light_direction is smaller than cutoff angle
-            double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
+            //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
+            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
 
             if(theta > spl.cutoff_angle)
             {
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //find if rayl is obscured by any object
@@ -1104,6 +1172,15 @@ public:
 
             double curT = this->intersect(ray, dummyColor, 0);
 
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
             for(auto object : objects)
             {
                 double iterT = object->intersect(ray, dummyColor, 0);
@@ -1111,35 +1188,44 @@ public:
                 if(iterT >= 0)
                     if(tMin > iterT)
                     {
-                        tMin = min(tMin, iterT);
+                        tMin = iterT;
                     }
             }
 
             //another object is closer to the ray i.e. current object obscured
-            if(tMin < curT || curT < 0)
+            if(tMin < curT) //|| curT < 0
             {
-                //only ambient components need to be calculated
-                return t_min;
+                //return t_min;
+                continue;
             }
 
             //diffuse component
-            double lambertValue = (normal % rayl) / (normal.distance() * rayl.distance());
+            Vector3D rayInv = spl.point_light.light_pos - intersectPoint;
+            rayInv.normalize();
+
+            double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
-            this->pixelColor = this->pixelColor + spl.point_light.color * coefficients[DIFFUSE] * lambertValue ^ intersectPointColor;
+            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * spl.point_light.color) ^ intersectPointColor);
 
             //specular component
-            Vector3D rayv = intersectPoint - cameraPosition;
-            Vector3D rayr = 2.0 * (rayl % normal) * normal - rayl;
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
 
-            double phongValue = (rayv % rayr) / (rayv.distance() * rayr.distance());
-            phongValue = max(pow(phongValue,this->shine*1.0), 0.0);
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
+            rayr.normalize();
 
-            this->pixelColor = this->pixelColor + spl.point_light.color * coefficients[SPECULAR] * phongValue ^ intersectPointColor;
+            double phongValue = (rayr % rayv);
 
-            color[0] = this->pixelColor.r;
-            color[1] = this->pixelColor.g;
-            color[2] = this->pixelColor.b;
+            phongValue = max(phongValue, 0.0);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
+
+            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         return t_min;
@@ -1276,11 +1362,13 @@ public:
         if(r->dir.z == 0.0)
             return -1.0;
 
-        double t = -(r->start.z) / (r->dir.z);
+        //double t = -(r->start.z) / (r->dir.z);
+        double t_min = -(r->start.z) / (r->dir.z);
 
         //determine if the intersecting point is inside the tile/square
         //intersecting point = R0 + t*Rd
-        Vector3D intersectPoint = r->start + r->dir * t;
+        //Vector3D intersectPoint = r->start + r->dir * t;
+        Vector3D intersectPoint = r->start + r->dir * t_min;
         double x = intersectPoint.x;
         double y = intersectPoint.y;
 
@@ -1302,34 +1390,201 @@ public:
         {
             if(j % 2 == 0)
             {
-                color[0] = 0;
-                color[1] = 0;
-                color[2] = 0;
+                this->pixelColor.r = 0;
+                this->pixelColor.g = 0;
+                this->pixelColor.b = 0;
             }
             else
             {
-                color[0] = 1;
-                color[1] = 1;
-                color[2] = 1;
+                this->pixelColor.r = 1;
+                this->pixelColor.g = 1;
+                this->pixelColor.b = 1;
             }
         }
         else
         {
             if(j % 2 == 1)
             {
-                color[0] = 0;
-                color[1] = 0;
-                color[2] = 0;
+                this->pixelColor.r = 0;
+                this->pixelColor.g = 0;
+                this->pixelColor.b = 0;
             }
             else
             {
-                color[0] = 1;
-                color[1] = 1;
-                color[2] = 1;
+                this->pixelColor.r = 1;
+                this->pixelColor.g = 1;
+                this->pixelColor.b = 1;
             }
         }
 
-        return t;
+        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        if(level ==0)
+            return t_min;
+
+        //Vector3D intersectPoint = r->start + r->dir * t_min;
+        Color intersectPointColor(color[0], color[1], color[2]);
+
+        //ambient component
+        this->pixelColor = intersectPointColor * coefficients[AMBIENT];
+        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        Vector3D normal(0, 0, 1);
+        normal.normalize();
+
+        for(auto pl : pointLights)
+        {
+            //direction of the incident ray on the surface
+            Vector3D rayl = intersectPoint - pl.light_pos;
+            rayl.normalize();
+
+            //find if rayl is obscured by any object
+            Ray *ray = new Ray(pl.light_pos, rayl);
+            double *dummyColor = new double[3];
+            double tMin = 1e50;
+
+            double curT = this->intersect(ray, dummyColor, 0);
+
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
+            for(auto object : objects)
+            {
+                double iterT = object->intersect(ray, dummyColor, 0);
+
+                if(iterT >= 0)
+                    if(tMin > iterT)
+                    {
+                        tMin = iterT;
+                    }
+            }
+
+            //another object is closer to the ray i.e. current object obscured
+            if(tMin < curT) //|| curT < 0
+            {
+                //return t_min;
+                continue;
+            }
+
+            //diffuse component
+            Vector3D rayInv = pl.light_pos - intersectPoint;
+            rayInv.normalize();
+
+            double lambertValue = (normal % rayInv);
+            lambertValue = max(lambertValue, 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
+
+            //specular component
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
+
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
+            rayr.normalize();
+
+            double phongValue = (rayr % rayv);
+
+            phongValue = max(phongValue, 0.0);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
+
+            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+        }
+
+        for(auto spl : spotLights)
+        {
+            Vector3D rayl = intersectPoint - spl.point_light.light_pos;
+            rayl.normalize();
+
+            //check it the angle between rayl and light_direction is smaller than cutoff angle
+            //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
+            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
+
+            if(theta > spl.cutoff_angle)
+            {
+                //return t_min;
+                continue;
+            }
+
+            //find if rayl is obscured by any object
+            Ray *ray = new Ray(spl.point_light.light_pos, rayl);
+            double *dummyColor = new double[3];
+            double tMin = 1e50;
+
+            double curT = this->intersect(ray, dummyColor, 0);
+
+            Vector3D rayIntersectPoint = ray->start + ray->dir * curT;
+
+            //intersection point is not reachable by the ray
+            if(abs(rayIntersectPoint.x - intersectPoint.x) > 1e-12 || abs(rayIntersectPoint.y - intersectPoint.y) > 1e-12 || abs(rayIntersectPoint.z - intersectPoint.z) > 1e-12)
+            {
+                //return t_min;
+                continue;
+            }
+
+            for(auto object : objects)
+            {
+                double iterT = object->intersect(ray, dummyColor, 0);
+
+                if(iterT >= 0)
+                    if(tMin > iterT)
+                    {
+                        tMin = iterT;
+                    }
+            }
+
+            //another object is closer to the ray i.e. current object obscured
+            if(tMin < curT) //|| curT < 0
+            {
+                //return t_min;
+                continue;
+            }
+
+            //diffuse component
+            Vector3D rayInv = spl.point_light.light_pos - intersectPoint;
+            rayInv.normalize();
+
+            double lambertValue = (normal % rayInv);
+            lambertValue = max(lambertValue, 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * spl.point_light.color) ^ intersectPointColor);
+
+            //specular component
+            Vector3D rayv = cameraPosition - intersectPoint;
+            rayv.normalize();
+
+            Vector3D rayr = rayl - (normal * ((rayl % normal) * 2.0));
+            rayr.normalize();
+
+            double phongValue = (rayr % rayv);
+
+            phongValue = max(phongValue, 0.0);
+
+            phongValue = max(pow(phongValue, this->shine), 0.0);
+
+            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
+
+            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+        }
+
+        return t_min;
     }
 };
 
