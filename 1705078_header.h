@@ -280,8 +280,10 @@ void loadData(string filename)
     //the floor
     Object *temp;
     temp = new Floor(1000, 20);
-    temp->setCoEfficients(0.4, 0.2, 0.2, 0.2);
-    temp->setShine(10);
+    //temp->setCoEfficients(0.4, 0.2, 0.1, 0.1);
+    temp->setCoEfficients(0.3, 0.4, 0.0, 0.3);
+    //temp->setShine(20);
+    temp->setShine(0.0);
     objects.push_back(temp);
 
     sceneFile.close();

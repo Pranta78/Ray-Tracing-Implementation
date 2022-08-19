@@ -206,9 +206,9 @@ public:
     SpotLight(PointLight point_light, Vector3D direction, double cutoff_angle)
     {
         this->point_light = point_light;
-        //this->light_direction = direction;
-        this->light_direction = direction + point_light.light_pos;
-        this->light_direction.normalize();
+        this->light_direction = direction;
+        //this->light_direction = direction + point_light.light_pos;
+        //this->light_direction.normalize();
         this->cutoff_angle = cutoff_angle;
     }
 
@@ -276,15 +276,20 @@ public:
 //Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
 //Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
 
-//Vector3D cameraPosition = {12.1908, -113.561, 44.6955};
-//Vector3D u = {0, 0, 1};
-//Vector3D r = {0.999041, -0.0437915, 0};
-//Vector3D l = {0.0437915, 0.999041, 0};
-
-Vector3D cameraPosition = {44.1738, -137.485, 109.196};
-Vector3D l = {0.0437915, 0.999041, 0};
+Vector3D cameraPosition = {12.1908, -113.561, 44.6955};
 Vector3D u = {0, 0, 1};
 Vector3D r = {0.999041, -0.0437915, 0};
+Vector3D l = {0.0437915, 0.999041, 0};
+
+//Vector3D cameraPosition = {44.1738, -137.485, 109.196};
+//Vector3D l = {0.0437915, 0.999041, 0};
+//Vector3D u = {0, 0, 1};
+//Vector3D r = {0.999041, -0.0437915, 0};
+
+//Vector3D cameraPosition = {128.721, 59.1808, 14.696};
+//Vector3D l = {-0.95955, -0.28154, 0};
+//Vector3D u = {0, 0, 1};
+//Vector3D r = {-0.28154, 0.95955, 0};
 
 //Vector3D cameraPosition = {0, 0, -100};
 //Vector3D u = {0, 1, 0};
@@ -620,8 +625,13 @@ public:
 
             //check it the angle between rayl and light_direction is smaller than cutoff angle
             //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
-            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //Vector3D direction = spl.light_direction - spl.point_light.light_pos;
+            //direction.normalize();
             //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
+            //double theta = (180.0 / pi) * acos(rayl % direction);
+
+            double theta = (180.0 / pi) * acos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
 
             if(theta > spl.cutoff_angle)
             {
@@ -870,32 +880,32 @@ public:
 //        color[2] = this->pixelColor.b;
 
         //cross product of (b-a) and (c-a)
-        Vector3D normal = (point2 - point1) ^ (point3 - point1);
+        //Vector3D normal = (point2 - point1) ^ (point3 - point1);
         //Vector3D normal = (point1 - point2) ^ (point3 - point2);
         //normal.normalize();
 
         //derive eqn of the plane the triangle is on
-        double tx = normal.x;
-        double ty = normal.y;
-        double tz = normal.z;
-        double td = -(point1 % normal);
+//        double tx = normal.x;
+//        double ty = normal.y;
+//        double tz = normal.z;
+//        double td = -(point1 % normal);
+//
+//        //a point along a side of the triangle
+//        Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
+//                           point1.y + 1.0 * normal.y / normal.distance(),
+//                           point1.z + 1.0 * normal.z / normal.distance());
+//
+//        double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
+//        double intersectPointVal = tx * intersectPoint.x + ty * intersectPoint.y + tz * intersectPoint.z + td;
+//
+//        if((randPointVal < 0 && intersectPointVal > 0) || (randPointVal > 0 && intersectPointVal < 0))
+//        {
+//            normal.x = -normal.x;
+//            normal.y = -normal.y;
+//            normal.z = -normal.z;
+//        }
 
-        //a point along a side of the triangle
-        Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
-                           point1.y + 1.0 * normal.y / normal.distance(),
-                           point1.z + 1.0 * normal.z / normal.distance());
-
-        double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
-        double intersectPointVal = tx * intersectPoint.x + ty * intersectPoint.y + tz * intersectPoint.z + td;
-
-        if((randPointVal < 0 && intersectPointVal > 0) || (randPointVal > 0 && intersectPointVal < 0))
-        {
-            normal.x = -normal.x;
-            normal.y = -normal.y;
-            normal.z = -normal.z;
-        }
-
-        normal.normalize();
+        //normal.normalize();
 
         for(auto pl : pointLights)
         {
@@ -941,6 +951,29 @@ public:
             Vector3D rayInv = pl.light_pos - intersectPoint;
             rayInv.normalize();
 
+            Vector3D normal = (point2 - point1) ^ (point3 - point1);
+            double tx = normal.x;
+            double ty = normal.y;
+            double tz = normal.z;
+            double td = -(point1 % normal);
+
+            //a point along a side of the triangle
+            Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
+                               point1.y + 1.0 * normal.y / normal.distance(),
+                               point1.z + 1.0 * normal.z / normal.distance());
+
+            double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
+            double lightSourcePointVal = tx * pl.light_pos.x + ty * pl.light_pos.y + tz * pl.light_pos.z + td;
+
+            if((randPointVal < 0 && lightSourcePointVal > 0) || (randPointVal > 0 && lightSourcePointVal < 0))
+            {
+                normal.x = -normal.x;
+                normal.y = -normal.y;
+                normal.z = -normal.z;
+            }
+
+            normal.normalize();
+
             double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
@@ -973,8 +1006,10 @@ public:
 
             //check it the angle between rayl and light_direction is smaller than cutoff angle
             //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
-            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
             //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
+
+            double theta = (180.0 / pi) * acos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
 
             if(theta > spl.cutoff_angle)
             {
@@ -1019,6 +1054,29 @@ public:
             //diffuse component
             Vector3D rayInv = spl.point_light.light_pos - intersectPoint;
             rayInv.normalize();
+
+            Vector3D normal = (point2 - point1) ^ (point3 - point1);
+            double tx = normal.x;
+            double ty = normal.y;
+            double tz = normal.z;
+            double td = -(point1 % normal);
+
+            //a point along a side of the triangle
+            Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
+                               point1.y + 1.0 * normal.y / normal.distance(),
+                               point1.z + 1.0 * normal.z / normal.distance());
+
+            double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
+            double lightSourcePointVal = tx * spl.point_light.light_pos.x + ty * spl.point_light.light_pos.y + tz * spl.point_light.light_pos.z + td;
+
+            if((randPointVal < 0 && lightSourcePointVal > 0) || (randPointVal > 0 && lightSourcePointVal < 0))
+            {
+                normal.x = -normal.x;
+                normal.y = -normal.y;
+                normal.z = -normal.z;
+            }
+
+            normal.normalize();
 
             double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
@@ -1078,6 +1136,30 @@ public:
         //get reflection of the incident ray by cameraPosition on intersectPoint
         Vector3D rayv = intersectPoint - cameraPosition;
         rayv.normalize();
+
+        Vector3D normal = (point2 - point1) ^ (point3 - point1);
+        double tx = normal.x;
+        double ty = normal.y;
+        double tz = normal.z;
+        double td = -(point1 % normal);
+
+        //a point along a side of the triangle
+        Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
+                           point1.y + 1.0 * normal.y / normal.distance(),
+                           point1.z + 1.0 * normal.z / normal.distance());
+
+        double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
+        double lightSourcePointVal = tx * cameraPosition.x + ty * cameraPosition.y + tz * cameraPosition.z + td;
+
+        if((randPointVal < 0 && lightSourcePointVal > 0) || (randPointVal > 0 && lightSourcePointVal < 0))
+        {
+            normal.x = -normal.x;
+            normal.y = -normal.y;
+            normal.z = -normal.z;
+        }
+
+        normal.normalize();
+
         Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
         rayr.normalize();
 
@@ -1351,8 +1433,10 @@ public:
 
             //check it the angle between rayl and light_direction is smaller than cutoff angle
             //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
-            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
             //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
+
+            double theta = (180.0 / pi) * acos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
 
             if(theta > spl.cutoff_angle)
             {
@@ -1620,20 +1704,20 @@ public:
 //            }
 //        }
 
-        if(i % 2 == 0)
-        {
-            if(j % 2 == 0)
-                pixel_color.setColor(0,0,0);
-            else
-                pixel_color.setColor(1,1,1);
-        }
-        else
-        {
-            if(j % 2 == 1)
-                pixel_color.setColor(0,0,0);
-            else
-                pixel_color.setColor(1,1,1);
-        }
+//        if(i % 2 == 0)
+//        {
+//            if(j % 2 == 0)
+//                pixel_color.setColor(0,0,0);
+//            else
+//                pixel_color.setColor(1,1,1);
+//        }
+//        else
+//        {
+//            if(j % 2 == 1)
+//                pixel_color.setColor(0,0,0);
+//            else
+//                pixel_color.setColor(1,1,1);
+//        }
 
         if((x > floorWidth / 2.0) || (x < -floorWidth / 2.0) || (y > floorWidth / 2.0) || (y < -floorWidth / 2.0))
         {
@@ -1647,15 +1731,26 @@ public:
 
         if(level == 0)  // || level >= recursion_level)
         {
-//            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
-//            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
-//            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
-
-            color[0] = min(max(color[0] + pixel_color.r, 0.0), 1.0);
-            color[1] = min(max(color[1] + pixel_color.g, 0.0), 1.0);
-            color[2] = min(max(color[2] + pixel_color.b, 0.0), 1.0);
+//            color[0] = min(max(color[0] + pixel_color.r, 0.0), 1.0);
+//            color[1] = min(max(color[1] + pixel_color.g, 0.0), 1.0);
+//            color[2] = min(max(color[2] + pixel_color.b, 0.0), 1.0);
 
             return t_min;
+        }
+
+        if(i % 2 == 0)
+        {
+            if(j % 2 == 0)
+                pixel_color.setColor(0,0,0);
+            else
+                pixel_color.setColor(1,1,1);
+        }
+        else
+        {
+            if(j % 2 == 1)
+                pixel_color.setColor(0,0,0);
+            else
+                pixel_color.setColor(1,1,1);
         }
 
         //Vector3D intersectPoint = r->start + r->dir * t_min;
@@ -1673,7 +1768,7 @@ public:
 //        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
 //        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
 
-        Vector3D normal(0, 0, 1);
+        //Vector3D normal(0, 0, 1);
         //normal.normalize();
 
         for(auto pl : pointLights)
@@ -1720,6 +1815,8 @@ public:
             Vector3D rayInv = pl.light_pos - intersectPoint;
             rayInv.normalize();
 
+            Vector3D normal(0, 0, (pl.light_pos.z >= 0) ? 1 : -1);
+
             double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
@@ -1754,8 +1851,13 @@ public:
 
             //check it the angle between rayl and light_direction is smaller than cutoff angle
             //double theta = (180.0 / pi) * cos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
-            double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
+            //double theta = (180.0 / pi) * acos(rayl % spl.light_direction);
             //double theta = (180.0 / pi) * acos(rayl % (spl.light_direction - spl.point_light.light_pos));
+//            Vector3D direction = spl.light_direction - spl.point_light.light_pos;
+//            direction.normalize();
+//            double theta = (180.0 / pi) * acos(rayl % direction);
+
+            double theta = (180.0 / pi) * acos((rayl % spl.light_direction) / (rayl.distance() * spl.light_direction.distance()));
 
             if(theta > spl.cutoff_angle)
             {
@@ -1800,6 +1902,8 @@ public:
             //diffuse component
             Vector3D rayInv = spl.point_light.light_pos - intersectPoint;
             rayInv.normalize();
+
+            Vector3D normal(0, 0, (spl.point_light.light_pos.z >= 0) ? 1 : -1);
 
             double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
@@ -1867,6 +1971,9 @@ public:
         //get reflection of the incident ray by cameraPosition on intersectPoint
         Vector3D rayv = intersectPoint - cameraPosition;
         rayv.normalize();
+
+        Vector3D normal(0, 0, (cameraPosition.z >= 0) ? 1 : -1);
+
         Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
         rayr.normalize();
 
