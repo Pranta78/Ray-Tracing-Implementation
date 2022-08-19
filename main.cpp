@@ -129,7 +129,7 @@ void capture()
             //cur_pixel = curPixel;
 
             Ray *ray = new Ray(cameraPosition, curPixel - cameraPosition);
-            double *dummyColor = new double[3];
+            //double *dummyColor = new double[3];
             double nearestColor[3];
 
             Object *nearest = NULL;
@@ -140,6 +140,7 @@ void capture()
 
             for(auto object : objects)
             {
+                double *dummyColor = new double[3];
                 double t = object->intersect(ray, dummyColor, 0);
                 //cout << "here 2.1!\n";
 
@@ -167,6 +168,7 @@ void capture()
 
             if(nearest != NULL)
             {
+                double *dummyColor = new double[3];
                 tMin = nearest -> intersect(ray, dummyColor, 1);
                 for(int e=0; e<3; e++)  nearestColor[e] = dummyColor[e];
                 //cout << "Updating i = " << i << ", j = " << j << "\tr = " << nearest->color[0] << ", g = " << nearest->color[1] << ", b = " << nearest->color[2] << "\n";
@@ -604,7 +606,7 @@ int main(int argc, char **argv){
 
 	glutCreateWindow("My OpenGL Program");
 
-	loadData("scene.txt");
+	loadData("scene15.txt");
 
 	init();
 

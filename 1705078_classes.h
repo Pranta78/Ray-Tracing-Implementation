@@ -506,22 +506,28 @@ public:
                 t_min = t2;
         }
 
-        color[0] = min(max(this->color.r, 0.0), 1.0);
-        color[1] = min(max(this->color.g, 0.0), 1.0);
-        color[2] = min(max(this->color.b, 0.0), 1.0);
+//        color[0] = min(max(this->color.r, 0.0), 1.0);
+//        color[1] = min(max(this->color.g, 0.0), 1.0);
+//        color[2] = min(max(this->color.b, 0.0), 1.0);
 
         //return -1.0;
-        if(level == 0 || level >= recursion_level)
+        if(level == 0)  // || level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->color.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->color.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->color.b, 0.0), 1.0);
+
             return t_min;
+        }
 
         Vector3D intersectPoint = r->start + r->dir * t_min;
         Color intersectPointColor = this->color;
 
         //ambient component
         this->pixelColor = intersectPointColor * coefficients[AMBIENT];
-        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
 
         Vector3D normal  = intersectPoint - center;
         normal.normalize();
@@ -590,9 +596,9 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         for(auto spl : spotLights)
@@ -669,10 +675,74 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
+
+        if(level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+            return t_min;
+        }
+
+        //return t_min;
+
+        /*************** Recursive Reflection code *********************/
+        //add recursive reflection component
+//        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+//        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+//        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+//
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        //get reflection of the incident ray by cameraPosition on intersectPoint
+        Vector3D rayv = intersectPoint - cameraPosition;
+        rayv.normalize();
+        Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
+        rayr.normalize();
+
+        //find the nearest object
+
+        //begin the ray a bit before the intersection point to avoid self reflection
+        Ray *reflectedRay = new Ray(intersectPoint + 1e-3 * rayr, rayr);
+        double *dummyColor = new double[3];
+        Object *nearest = NULL;
+        double tMin = 1e50;
+
+        for(auto object : objects)
+        {
+            double iterT = object->intersect(reflectedRay, dummyColor, 0);
+
+            if(iterT >= 0)
+                if(tMin > iterT)
+                {
+                    nearest = object;
+                    tMin = iterT;
+                }
+        }
+
+        if(nearest != NULL)
+            tMin = nearest -> intersect(reflectedRay, color, level+1);
+
+        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        /*************** Recursive Reflection code *********************/
 
         return t_min;
     }
@@ -706,10 +776,6 @@ public:
 
     double intersect(Ray *r, double *color, int level)
     {
-        color[0] = this->color.r;
-        color[1] = this->color.g;
-        color[2] = this->color.b;
-
         double ax = point1.x;
         double ay = point1.y;
         double az = point1.z;
@@ -773,17 +839,23 @@ public:
         else
             t_min = detT;
 
-        if(level == 0)
+        if(level == 0)  // || level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->color.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->color.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->color.b, 0.0), 1.0);
+
             return t_min;
+        }
 
         Vector3D intersectPoint = r->start + r->dir * t_min;
         Color intersectPointColor = this->color;
 
         //ambient component
         this->pixelColor = intersectPointColor * coefficients[AMBIENT];
-        color[0] = this->pixelColor.r;
-        color[1] = this->pixelColor.g;
-        color[2] = this->pixelColor.b;
+//        color[0] = this->pixelColor.r;
+//        color[1] = this->pixelColor.g;
+//        color[2] = this->pixelColor.b;
 
         //cross product of (b-a) and (c-a)
         Vector3D normal = (point2 - point1) ^ (point3 - point1);
@@ -877,9 +949,9 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         for(auto spl : spotLights)
@@ -956,10 +1028,82 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
+
+//        if(level == 1)
+//        {
+//            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//
+//            return t_min;
+//        }
+//
+//        return t_min;
+
+        if(level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+            return t_min;
+        }
+
+        /*************** Recursive Reflection code *********************/
+        //add recursive reflection component
+//        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+//        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+//        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+//
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        //get reflection of the incident ray by cameraPosition on intersectPoint
+        Vector3D rayv = intersectPoint - cameraPosition;
+        Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
+        rayr.normalize();
+
+        //find the nearest object
+
+        //begin the ray a bit before the intersection point to avoid self reflection
+        Ray *reflectedRay = new Ray(intersectPoint + 1e-3 * rayr, rayr);
+        double *dummyColor = new double[3];
+        Object *nearest = NULL;
+        double tMin = 1e50;
+
+        for(auto object : objects)
+        {
+            double iterT = object->intersect(reflectedRay, dummyColor, 0);
+
+            if(iterT >= 0)
+                if(tMin > iterT)
+                {
+                    nearest = object;
+                    tMin = iterT;
+                }
+        }
+
+        if(nearest != NULL)
+            tMin = nearest -> intersect(reflectedRay, color, level+1);
+
+        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        /*************** Recursive Reflection code *********************/
 
         return t_min;
     }
@@ -1024,9 +1168,9 @@ public:
         double dy = Rd.y;
         double dz = Rd.z;
 
-        color[0] = this->color.r;
-        color[1] = this->color.g;
-        color[2] = this->color.b;
+//        color[0] = this->color.r;
+//        color[1] = this->color.g;
+//        color[2] = this->color.b;
 
         double t_min = -1.0;
 
@@ -1089,17 +1233,23 @@ public:
         }
 
         //return -1.0;
-        if(level == 0)
+        if(level == 0)  // || level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->color.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->color.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->color.b, 0.0), 1.0);
+
             return t_min;
+        }
 
         Vector3D intersectPoint = r->start + r->dir * t_min;
         Color intersectPointColor = this->color;
 
         //ambient component
         this->pixelColor = intersectPointColor * coefficients[AMBIENT];
-        color[0] = this->pixelColor.r;
-        color[1] = this->pixelColor.g;
-        color[2] = this->pixelColor.b;
+//        color[0] = this->pixelColor.r;
+//        color[1] = this->pixelColor.g;
+//        color[2] = this->pixelColor.b;
 
         double ix = intersectPoint.x;
         double iy = intersectPoint.y;
@@ -1110,6 +1260,7 @@ public:
         double nz = 2.0*c*iz + e*ix + f*iy + i;
 
         Vector3D normal(nx, ny, nz);
+        //normal.normalize();
 
         for(auto pl : pointLights)
         {
@@ -1175,9 +1326,9 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         for(auto spl : spotLights)
@@ -1254,10 +1405,82 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
+
+//        if(level == 1)
+//        {
+//            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//
+//            return t_min;
+//        }
+//
+//        return t_min;
+
+        if(level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+            return t_min;
+        }
+
+        /*************** Recursive Reflection code *********************/
+        //add recursive reflection component
+        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        //get reflection of the incident ray by cameraPosition on intersectPoint
+        Vector3D rayv = intersectPoint - cameraPosition;
+        Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
+        rayr.normalize();
+
+        //find the nearest object
+
+        //begin the ray a bit before the intersection point to avoid self reflection
+        Ray *reflectedRay = new Ray(intersectPoint + 1e-3 * rayr, rayr);
+        double *dummyColor = new double[3];
+        Object *nearest = NULL;
+        double tMin = 1e50;
+
+        for(auto object : objects)
+        {
+            double iterT = object->intersect(reflectedRay, dummyColor, 0);
+
+            if(iterT >= 0)
+                if(tMin > iterT)
+                {
+                    nearest = object;
+                    tMin = iterT;
+                }
+        }
+
+        if(nearest != NULL)
+            tMin = nearest -> intersect(reflectedRay, color, level+1);
+
+        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        /*************** Recursive Reflection code *********************/
 
         return t_min;
     }
@@ -1451,21 +1674,27 @@ public:
             }
         }
 
-        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
 
-        if(level ==0)
+        if(level == 0)  // || level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
             return t_min;
+        }
 
         //Vector3D intersectPoint = r->start + r->dir * t_min;
         Color intersectPointColor(color[0], color[1], color[2]);
 
         //ambient component
         this->pixelColor = intersectPointColor * coefficients[AMBIENT];
-        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
 
         Vector3D normal(0, 0, 1);
         normal.normalize();
@@ -1534,9 +1763,9 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
 
         for(auto spl : spotLights)
@@ -1613,10 +1842,82 @@ public:
 
             this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
 
-            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
         }
+
+//        if(level == 1)
+//        {
+//            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//
+//            return t_min;
+//        }
+//
+//        return t_min;
+
+        if(level >= recursion_level)
+        {
+            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+            return t_min;
+        }
+
+        /*************** Recursive Reflection code *********************/
+        //add recursive reflection component
+        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        //get reflection of the incident ray by cameraPosition on intersectPoint
+        Vector3D rayv = intersectPoint - cameraPosition;
+        Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
+        rayr.normalize();
+
+        //find the nearest object
+
+        //begin the ray a bit before the intersection point to avoid self reflection
+        Ray *reflectedRay = new Ray(intersectPoint + 1e-3 * rayr, rayr);
+        double *dummyColor = new double[3];
+        Object *nearest = NULL;
+        double tMin = 1e50;
+
+        for(auto object : objects)
+        {
+            double iterT = object->intersect(reflectedRay, dummyColor, 0);
+
+            if(iterT >= 0)
+                if(tMin > iterT)
+                {
+                    nearest = object;
+                    tMin = iterT;
+                }
+        }
+
+        if(nearest != NULL)
+            tMin = nearest -> intersect(reflectedRay, color, level+1);
+
+        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        /*************** Recursive Reflection code *********************/
 
         return t_min;
     }
