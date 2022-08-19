@@ -15,42 +15,6 @@ extern vector <Object*> objects;
 extern vector <PointLight> pointLights;
 extern vector <SpotLight> spotLights;
 
-void createFloor(double floorWidth, double tileWidth)
-{
-    double floorOriginX = floorWidth/2.0;
-    double floorOriginY = floorWidth/2.0;
-
-    int tileNumbers = floorWidth / tileWidth;
-
-    for(int i=0; i<tileNumbers; i++)
-    {
-        int x = floorOriginX - i * tileWidth;
-
-        for(int j=0; j<tileNumbers; j++)
-        {
-            int y = floorOriginY - j * tileWidth;
-
-            Object *temp;
-            temp = new Tile(x, y, tileWidth);
-            temp->setCoEfficients(0.4, 0.2, 0.2, 0.2);
-            temp->setShine(10);
-
-            if(i % 2 == 0)
-            {
-                if(j % 2 == 0)  temp->setColor(0, 0, 0);
-                else    temp->setColor(1, 1, 1);
-            }
-            else
-            {
-                if(j % 2 == 1)  temp->setColor(0, 0, 0);
-                else    temp->setColor(1, 1, 1);
-            }
-
-            objects.push_back(temp);
-        }
-    }
-}
-
 void loadData(string filename)
 {
     string input;
@@ -319,8 +283,6 @@ void loadData(string filename)
     temp->setCoEfficients(0.4, 0.2, 0.2, 0.2);
     temp->setShine(10);
     objects.push_back(temp);
-
-    //createFloor(1000, 20);
 
     sceneFile.close();
 }

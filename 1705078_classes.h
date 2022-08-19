@@ -276,10 +276,15 @@ public:
 //Vector3D r = {-1.0/root_2, 1.0/root_2, 0};
 //Vector3D l = {-1.0/root_2, -1.0/root_2, 0};
 
-Vector3D cameraPosition = {12.1908, -113.561, 44.6955};
+//Vector3D cameraPosition = {12.1908, -113.561, 44.6955};
+//Vector3D u = {0, 0, 1};
+//Vector3D r = {0.999041, -0.0437915, 0};
+//Vector3D l = {0.0437915, 0.999041, 0};
+
+Vector3D cameraPosition = {44.1738, -137.485, 109.196};
+Vector3D l = {0.0437915, 0.999041, 0};
 Vector3D u = {0, 0, 1};
 Vector3D r = {0.999041, -0.0437915, 0};
-Vector3D l = {0.0437915, 0.999041, 0};
 
 //Vector3D cameraPosition = {0, 0, -100};
 //Vector3D u = {0, 1, 0};
@@ -870,25 +875,25 @@ public:
         //normal.normalize();
 
         //derive eqn of the plane the triangle is on
-//        double tx = normal.x;
-//        double ty = normal.y;
-//        double tz = normal.z;
-//        double td = -(point1 % normal);
-//
-//        //a point along a side of the triangle
-//        Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
-//                           point1.y + 1.0 * normal.y / normal.distance(),
-//                           point1.z + 1.0 * normal.z / normal.distance());
-//
-//        double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
-//        double intersectPointVal = tx * intersectPoint.x + ty * intersectPoint.y + tz * intersectPoint.z + td;
-//
-//        if((randPointVal < 0 && intersectPointVal > 0) || (randPointVal > 0 && intersectPointVal < 0))
-//        {
-//            normal.x = -normal.x;
-//            normal.y = -normal.y;
-//            normal.z = -normal.z;
-//        }
+        double tx = normal.x;
+        double ty = normal.y;
+        double tz = normal.z;
+        double td = -(point1 % normal);
+
+        //a point along a side of the triangle
+        Vector3D randPoint(point1.x + 1.0 * normal.x / normal.distance(),
+                           point1.y + 1.0 * normal.y / normal.distance(),
+                           point1.z + 1.0 * normal.z / normal.distance());
+
+        double randPointVal = tx * randPoint.x + ty * randPoint.y + tz * randPoint.z + td;
+        double intersectPointVal = tx * intersectPoint.x + ty * intersectPoint.y + tz * intersectPoint.z + td;
+
+        if((randPointVal < 0 && intersectPointVal > 0) || (randPointVal > 0 && intersectPointVal < 0))
+        {
+            normal.x = -normal.x;
+            normal.y = -normal.y;
+            normal.z = -normal.z;
+        }
 
         normal.normalize();
 
@@ -1495,63 +1500,6 @@ public:
     }
 };
 
-class Tile : public Object
-{
-    double tileX, tileY;
-    double tileWidth;
-
-public:
-    Tile(double tileX, double tileY, double tileWidth)
-    {
-        //reference_point = Vector3D(-floorWidth/2.0, -floorWidth/2.0, 0);
-        length = tileWidth;
-
-        this->tileX = tileX;
-        this->tileY = tileY;
-        this->tileWidth = tileWidth;
-    }
-
-    void draw()
-    {
-        //glColor3f(color[0], color[1], color[2]);
-        glColor3f(color.r, color.g, color.b);
-
-        glBegin(GL_QUADS);
-        {
-            glVertex3f(tileX, tileY, 0);
-            glVertex3f(tileX-tileWidth, tileY, 0);
-            glVertex3f(tileX-tileWidth, tileY-tileWidth, 0);
-            glVertex3f(tileX, tileY-tileWidth, 0);
-        }
-        glEnd();
-    }
-
-    double intersect(Ray *r, double *color, int level)
-    {
-        //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
-        //D = (0, 0, 1) dot (0, 0, 0) = 0
-        //t = -(D + normal dot R0) / normal dot Rd
-        if(r->dir.z == 0.0)
-            return -1.0;
-
-        double t = -(r->start.z) / (r->dir.z);
-
-        //determine if the intersecting point is inside the tile/square
-        //intersecting point = R0 + t*Rd
-        Vector3D intersectPoint = r->start + r->dir * t;
-        double x = intersectPoint.x;
-        double y = intersectPoint.y;
-
-        double xMin = tileX - tileWidth;
-        double yMin = tileY - tileWidth;
-        //since tile is on XY plane, compare x, y coordinates with those of the tile
-        if((x >= xMin && x <= tileX) && (y >= yMin && y <= tileY))
-            return t;
-
-        return -1.0;
-    }
-};
-
 class Floor : public Object
 {
     double floorWidth, tileWidth;
@@ -1603,19 +1551,6 @@ public:
             }
         }
     }
-
-//    double intersect(Ray *r, double *color, int level)
-//    {
-//        //plane: XY; point: (0,0,0), normal: z axis (0, 0, 1)
-//        //D = (0, 0, 1) dot (0, 0, 0) = 0
-//        //t = -(D + normal dot R0) / normal dot Rd
-//        if(r->dir.z == 0.0)
-//            return -1.0;
-//
-//        double t = -(r->start.z) / (r->dir.z);
-//
-//        return t;
-//    }
 
     double intersect(Ray *r, double *color, int level)
     {

@@ -158,22 +158,28 @@ void capture()
 //                        nearestColor[0] = object->color.r;
 //                        nearestColor[1] = object->color.g;
 //                        nearestColor[2] = object->color.b;
-                        for(int e=0; e<3; e++)  nearestColor[e] = dummyColor[e];
+                        //for(int e=0; e<3; e++)  nearestColor[e] = dummyColor[e];
 
                         tMin = min(tMin, t);
                         //cout << "Updated! t = " << t << ", tMin = " << tMin << "\n";
                         //image.set_pixel(j, i, 1, 0, 1);
                     }
+
+                delete[] dummyColor;
             }
 
             if(nearest != NULL)
             {
                 double *dummyColor = new double[3];
+                dummyColor[0] = 0.0;
+                dummyColor[1] = 0.0;
+                dummyColor[2] = 0.0;
                 tMin = nearest -> intersect(ray, dummyColor, 1);
                 for(int e=0; e<3; e++)  nearestColor[e] = dummyColor[e];
                 //cout << "Updating i = " << i << ", j = " << j << "\tr = " << nearest->color[0] << ", g = " << nearest->color[1] << ", b = " << nearest->color[2] << "\n";
                 //image.set_pixel(j, i, nearest->color[0]*255.0, nearest->color[1]*255.0, nearest->color[2]*255.0);
                 image.set_pixel(j, i, nearestColor[0]*255.0, nearestColor[1]*255.0, nearestColor[2]*255.0);
+                delete[] dummyColor;
             }
 
             //image.set_pixel(j, i, 1, 0, 1);
