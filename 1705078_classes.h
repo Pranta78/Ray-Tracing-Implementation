@@ -1700,6 +1700,12 @@ public:
                 pixel_color.setColor(1,1,1);
         }
 
+        if((x > floorWidth / 2.0) || (x < -floorWidth / 2.0) || (y > floorWidth / 2.0) || (y < -floorWidth / 2.0))
+        {
+            pixel_color.setColor(0,0,0);
+            t_min = -1.0;
+        }
+
 //        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
 //        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
 //        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
