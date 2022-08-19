@@ -114,6 +114,13 @@ public:
     {
         return Color(r*a.r, g*a.g, b*a.b);
     }
+
+    void setColor(double x, double y, double z)
+    {
+        this->r = x;
+        this->g = y;
+        this->b = z;
+    }
 };
 
 class PointLight
@@ -1065,6 +1072,7 @@ public:
 
         //get reflection of the incident ray by cameraPosition on intersectPoint
         Vector3D rayv = intersectPoint - cameraPosition;
+        rayv.normalize();
         Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
         rayr.normalize();
 
@@ -1260,7 +1268,7 @@ public:
         double nz = 2.0*c*iz + e*ix + f*iy + i;
 
         Vector3D normal(nx, ny, nz);
-        //normal.normalize();
+        normal.normalize();
 
         for(auto pl : pointLights)
         {
@@ -1432,16 +1440,17 @@ public:
 
         /*************** Recursive Reflection code *********************/
         //add recursive reflection component
-        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
-        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
-        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
-
-        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
-        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
-        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+//        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+//        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+//
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
 
         //get reflection of the incident ray by cameraPosition on intersectPoint
         Vector3D rayv = intersectPoint - cameraPosition;
+        rayv.normalize();
         Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
         rayr.normalize();
 
@@ -1643,35 +1652,52 @@ public:
 //            else    this->setColor(1, 1, 1);
 //        }
 
+        Color pixel_color;
+
+//        if(i % 2 == 0)
+//        {
+//            if(j % 2 == 0)
+//            {
+//                this->pixelColor.r = 0;
+//                this->pixelColor.g = 0;
+//                this->pixelColor.b = 0;
+//            }
+//            else
+//            {
+//                this->pixelColor.r = 1;
+//                this->pixelColor.g = 1;
+//                this->pixelColor.b = 1;
+//            }
+//        }
+//        else
+//        {
+//            if(j % 2 == 1)
+//            {
+//                this->pixelColor.r = 0;
+//                this->pixelColor.g = 0;
+//                this->pixelColor.b = 0;
+//            }
+//            else
+//            {
+//                this->pixelColor.r = 1;
+//                this->pixelColor.g = 1;
+//                this->pixelColor.b = 1;
+//            }
+//        }
+
         if(i % 2 == 0)
         {
             if(j % 2 == 0)
-            {
-                this->pixelColor.r = 0;
-                this->pixelColor.g = 0;
-                this->pixelColor.b = 0;
-            }
+                pixel_color.setColor(0,0,0);
             else
-            {
-                this->pixelColor.r = 1;
-                this->pixelColor.g = 1;
-                this->pixelColor.b = 1;
-            }
+                pixel_color.setColor(1,1,1);
         }
         else
         {
             if(j % 2 == 1)
-            {
-                this->pixelColor.r = 0;
-                this->pixelColor.g = 0;
-                this->pixelColor.b = 0;
-            }
+                pixel_color.setColor(0,0,0);
             else
-            {
-                this->pixelColor.r = 1;
-                this->pixelColor.g = 1;
-                this->pixelColor.b = 1;
-            }
+                pixel_color.setColor(1,1,1);
         }
 
 //        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
@@ -1680,24 +1706,34 @@ public:
 
         if(level == 0)  // || level >= recursion_level)
         {
-            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+            color[0] = min(max(color[0] + pixel_color.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + pixel_color.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + pixel_color.b, 0.0), 1.0);
 
             return t_min;
         }
 
         //Vector3D intersectPoint = r->start + r->dir * t_min;
-        Color intersectPointColor(color[0], color[1], color[2]);
+        //Color intersectPointColor(color[0], color[1], color[2]);
+
+        //Color intersectPointColor(this->pixelColor.r, this->pixelColor.g, pixelColor.b);
+        Color intersectPointColor(pixel_color.r, pixel_color.g, pixel_color.b);
 
         //ambient component
-        this->pixelColor = intersectPointColor * coefficients[AMBIENT];
+        //this->pixelColor = intersectPointColor * coefficients[AMBIENT];
+        pixel_color = intersectPointColor * coefficients[AMBIENT];
+
+        //cout << "Before Color: r = " << this->pixelColor.r << ", g = " << this->pixelColor.g << ", b = " << this->pixelColor.b << "\n";
 //        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
 //        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
 //        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
 
         Vector3D normal(0, 0, 1);
-        normal.normalize();
+        //normal.normalize();
 
         for(auto pl : pointLights)
         {
@@ -1746,7 +1782,8 @@ public:
             double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
-            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
+            //this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
+            pixel_color = pixel_color + (((coefficients[DIFFUSE] * lambertValue) * pl.color) ^ intersectPointColor);
 
             //specular component
             Vector3D rayv = cameraPosition - intersectPoint;
@@ -1761,7 +1798,8 @@ public:
 
             phongValue = max(pow(phongValue, this->shine), 0.0);
 
-            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
+            //this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * pl.color));
+            pixel_color = pixel_color + (((coefficients[SPECULAR] * phongValue) * pl.color));
 
 //            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
 //            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
@@ -1825,7 +1863,8 @@ public:
             double lambertValue = (normal % rayInv);
             lambertValue = max(lambertValue, 0.0);
 
-            this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * spl.point_light.color) ^ intersectPointColor);
+            //this->pixelColor = this->pixelColor + (((coefficients[DIFFUSE] * lambertValue) * spl.point_light.color) ^ intersectPointColor);
+            pixel_color = pixel_color + (((coefficients[DIFFUSE] * lambertValue) * spl.point_light.color) ^ intersectPointColor);
 
             //specular component
             Vector3D rayv = cameraPosition - intersectPoint;
@@ -1840,7 +1879,8 @@ public:
 
             phongValue = max(pow(phongValue, this->shine), 0.0);
 
-            this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
+            //this->pixelColor = this->pixelColor + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
+            pixel_color = pixel_color + (((coefficients[SPECULAR] * phongValue) * spl.point_light.color));
 
 //            color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
 //            color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
@@ -1860,25 +1900,32 @@ public:
 
         if(level >= recursion_level)
         {
-            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
-            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
-            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//            color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//            color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//            color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+
+            color[0] = min(max(color[0] + pixel_color.r, 0.0), 1.0);
+            color[1] = min(max(color[1] + pixel_color.g, 0.0), 1.0);
+            color[2] = min(max(color[2] + pixel_color.b, 0.0), 1.0);
+
+            //cout << "Color: r = " << this->pixelColor.r << ", g = " << this->pixelColor.g << ", b = " << this->pixelColor.b << "\n";
 
             return t_min;
         }
 
         /*************** Recursive Reflection code *********************/
         //add recursive reflection component
-        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
-        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
-        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
-
-        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
-        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
-        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
+//        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+//        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+//        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+//
+//        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
 
         //get reflection of the incident ray by cameraPosition on intersectPoint
         Vector3D rayv = intersectPoint - cameraPosition;
+        rayv.normalize();
         Vector3D rayr = rayv - (normal * ((rayv % normal) * 2.0));
         rayr.normalize();
 
@@ -1905,17 +1952,26 @@ public:
         if(nearest != NULL)
             tMin = nearest -> intersect(reflectedRay, color, level+1);
 
-        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
-        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
-        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+//        this->pixelColor.r = this->pixelColor.r + (((coefficients[REFLECTION] * color[0])));
+//        this->pixelColor.g = this->pixelColor.g + (((coefficients[REFLECTION] * color[1])));
+//        this->pixelColor.b = this->pixelColor.b + (((coefficients[REFLECTION] * color[2])));
+
+        pixel_color.r = pixel_color.r + (((coefficients[REFLECTION] * color[0])));
+        pixel_color.g = pixel_color.g + (((coefficients[REFLECTION] * color[1])));
+        pixel_color.b = pixel_color.b + (((coefficients[REFLECTION] * color[2])));
+
 
 //        color[0] = min(max(color[0] + this->pixelColor.r, 0.0), 1.0);
 //        color[1] = min(max(color[1] + this->pixelColor.g, 0.0), 1.0);
 //        color[2] = min(max(color[2] + this->pixelColor.b, 0.0), 1.0);
 
-        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
-        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
-        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+//        color[0] = min(max(this->pixelColor.r, 0.0), 1.0);
+//        color[1] = min(max(this->pixelColor.g, 0.0), 1.0);
+//        color[2] = min(max(this->pixelColor.b, 0.0), 1.0);
+
+        color[0] = min(max(pixel_color.r, 0.0), 1.0);
+        color[1] = min(max(pixel_color.g, 0.0), 1.0);
+        color[2] = min(max(pixel_color.b, 0.0), 1.0);
 
         /*************** Recursive Reflection code *********************/
 
